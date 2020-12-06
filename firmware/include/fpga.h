@@ -27,9 +27,9 @@ void fpga_select_active_buffer(uint8_t value);
 void fpga_reset_device(int do_clock_stuck_glitch);
 struct glitch_config
 {
-    uint32_t width;
-    uint32_t offset;
-    uint32_t rng;
+	uint32_t width;
+	uint32_t offset;
+	uint32_t rng;
 };
 void fpga_glitch_device(struct glitch_config *cfg);
 uint32_t fpga_read_glitch_flags();

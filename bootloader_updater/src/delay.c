@@ -19,23 +19,23 @@
 
 void delay_init(uint8_t sysclk)
 {
-    SysTick->LOAD = 0xFFFFFF;
-    SysTick->VAL = 0;
-    SysTick->CTRL = 5;
+	SysTick->LOAD = 0xFFFFFF;
+	SysTick->VAL = 0;
+	SysTick->CTRL = 5;
 }
 
 void SysTick_delay(uint64_t val)
 {
 	uint32_t i = SysTick->VAL;
-    while (1)
-    {
-        uint32_t new_val = SysTick->VAL;
-        uint32_t diff = (i - new_val) & 0xFFFFFF;
-        if (diff >= val)
-            break;
-        val -= diff;
+	while (1)
+	{
+		uint32_t new_val = SysTick->VAL;
+		uint32_t diff = (i - new_val) & 0xFFFFFF;
+		if (diff >= val)
+			break;
+		val -= diff;
 		i = new_val;
-    }
+	}
 }
 
 void delay_ms(uint32_t nms)

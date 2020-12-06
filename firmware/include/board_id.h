@@ -19,9 +19,9 @@
 
 enum BOARD_ID
 {
-    BOARD_ID_UNKNOWN,
-    BOARD_ID_CORE,
-    BOARD_ID_LITE
+	BOARD_ID_UNKNOWN,
+	BOARD_ID_CORE,
+	BOARD_ID_LITE
 };
 
 void board_id_init();

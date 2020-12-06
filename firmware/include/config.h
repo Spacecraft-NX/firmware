@@ -22,17 +22,17 @@
 
 typedef struct
 {
-    uint16_t offset;
-    uint8_t width;
-    uint32_t success;
+	uint16_t offset;
+	uint8_t width;
+	uint32_t success;
 } timing_t;
 
 typedef struct 
 {
-    uint32_t magic;
-    uint32_t idx;
-    timing_t timings[32];
-    uint8_t reflash;
+	uint32_t magic;
+	uint32_t idx;
+	timing_t timings[32];
+	uint8_t reflash;
 } config;
 
 void config_clear(config *cfg);

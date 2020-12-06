@@ -92,81 +92,81 @@ void init_leds()
 	rcu_periph_clock_enable(RCU_GPIOA);
 	rcu_periph_clock_enable(RCU_GPIOB);
 	rcu_periph_clock_enable(RCU_TIMER0);
-    rcu_periph_clock_enable(RCU_TIMER15);
-    rcu_periph_clock_enable(RCU_TIMER16);
+	rcu_periph_clock_enable(RCU_TIMER15);
+	rcu_periph_clock_enable(RCU_TIMER16);
 	
-    gpio_af_set(GPIOB, 2, GPIO_PIN_8);         // TIMER15_CH0
-    gpio_af_set(GPIOB, 2, GPIO_PIN_9);         // TIMER16_CH0
-    gpio_af_set(GPIOA, 2, GPIO_PIN_10);        // TIMER0_CH2
-    gpio_output_options_set(GPIOB, 0, 3, GPIO_PIN_8);
-    gpio_output_options_set(GPIOB, 0, 3, GPIO_PIN_9);
-    gpio_output_options_set(GPIOA, 0, 3, GPIO_PIN_10);
-    gpio_mode_set(GPIOB, 2, 0, GPIO_PIN_8);
-    gpio_mode_set(GPIOB, 2, 0, GPIO_PIN_9);
-    gpio_mode_set(GPIOA, 2, 0, GPIO_PIN_10);
-    timer_deinit(TIMER0);
-    timer_deinit(TIMER15);
-    timer_deinit(TIMER16);
-    timer_parameter_struct initpara;
+	gpio_af_set(GPIOB, 2, GPIO_PIN_8);
+	gpio_af_set(GPIOB, 2, GPIO_PIN_9);
+	gpio_af_set(GPIOA, 2, GPIO_PIN_10);
+	gpio_output_options_set(GPIOB, 0, 3, GPIO_PIN_8);
+	gpio_output_options_set(GPIOB, 0, 3, GPIO_PIN_9);
+	gpio_output_options_set(GPIOA, 0, 3, GPIO_PIN_10);
+	gpio_mode_set(GPIOB, 2, 0, GPIO_PIN_8);
+	gpio_mode_set(GPIOB, 2, 0, GPIO_PIN_9);
+	gpio_mode_set(GPIOA, 2, 0, GPIO_PIN_10);
+	timer_deinit(TIMER0);
+	timer_deinit(TIMER15);
+	timer_deinit(TIMER16);
+	timer_parameter_struct initpara;
 	initpara.prescaler = 107;
-    initpara.alignedmode = TIMER_COUNTER_EDGE;
-    initpara.counterdirection = TIMER_COUNTER_UP;
-    initpara.period = 255;
-    initpara.clockdivision = TIMER_CKDIV_DIV1;
-    initpara.repetitioncounter = 0;
-    timer_init(TIMER0, &initpara);
-    timer_init(TIMER15, &initpara);
-    timer_init(TIMER16, &initpara);
-    timer_oc_parameter_struct v0;
+	initpara.alignedmode = TIMER_COUNTER_EDGE;
+	initpara.counterdirection = TIMER_COUNTER_UP;
+	initpara.period = 255;
+	initpara.clockdivision = TIMER_CKDIV_DIV1;
+	initpara.repetitioncounter = 0;
+	timer_init(TIMER0, &initpara);
+	timer_init(TIMER15, &initpara);
+	timer_init(TIMER16, &initpara);
+	timer_oc_parameter_struct v0;
 	v0.outputstate = TIMER_CCX_ENABLE;
-    v0.outputnstate = TIMER_CCXN_ENABLE;
-    v0.ocpolarity = TIMER_OC_POLARITY_HIGH;
-    v0.ocnpolarity = TIMER_OCN_POLARITY_LOW;
-    v0.ocidlestate = TIMER_OC_IDLE_STATE_LOW;
-    v0.ocnidlestate = TIMER_OCN_IDLE_STATE_HIGH;
-    timer_channel_output_config(TIMER15, 0, &v0);
-    timer_channel_output_pulse_value_config(TIMER15, 0, 256);
-    timer_channel_output_mode_config(TIMER15, 0, 96);
-    timer_channel_output_shadow_config(TIMER15, 0, 0);
-    timer_primary_output_config(TIMER15, 1);
-    timer_auto_reload_shadow_enable(TIMER15);
-    timer_channel_output_config(TIMER16, 0, &v0);
-    timer_channel_output_pulse_value_config(TIMER16, 0, 256);
-    timer_channel_output_mode_config(TIMER16, 0, 96);
-    timer_channel_output_shadow_config(TIMER16, 0, 0);
-    timer_primary_output_config(TIMER16, 1);
-    timer_auto_reload_shadow_enable(TIMER16);
-    timer_channel_output_config(TIMER0, 2, &v0);
-    timer_channel_output_pulse_value_config(TIMER0, 2, 256);
-    timer_channel_output_mode_config(TIMER0, 2, 96);
-    timer_channel_output_shadow_config(TIMER0, 2, 0);
-    timer_primary_output_config(TIMER0, 1);
-    timer_auto_reload_shadow_enable(TIMER0);
-    timer_enable(TIMER0);
-    timer_enable(TIMER16);
-    timer_enable(TIMER15);
+	v0.outputnstate = TIMER_CCXN_ENABLE;
+	v0.ocpolarity = TIMER_OC_POLARITY_HIGH;
+	v0.ocnpolarity = TIMER_OCN_POLARITY_LOW;
+	v0.ocidlestate = TIMER_OC_IDLE_STATE_LOW;
+	v0.ocnidlestate = TIMER_OCN_IDLE_STATE_HIGH;
+	timer_channel_output_config(TIMER15, 0, &v0);
+	timer_channel_output_pulse_value_config(TIMER15, 0, 256);
+	timer_channel_output_mode_config(TIMER15, 0, 96);
+	timer_channel_output_shadow_config(TIMER15, 0, 0);
+	timer_primary_output_config(TIMER15, 1);
+	timer_auto_reload_shadow_enable(TIMER15);
+	timer_channel_output_config(TIMER16, 0, &v0);
+	timer_channel_output_pulse_value_config(TIMER16, 0, 256);
+	timer_channel_output_mode_config(TIMER16, 0, 96);
+	timer_channel_output_shadow_config(TIMER16, 0, 0);
+	timer_primary_output_config(TIMER16, 1);
+	timer_auto_reload_shadow_enable(TIMER16);
+	timer_channel_output_config(TIMER0, 2, &v0);
+	timer_channel_output_pulse_value_config(TIMER0, 2, 256);
+	timer_channel_output_mode_config(TIMER0, 2, 96);
+	timer_channel_output_shadow_config(TIMER0, 2, 0);
+	timer_primary_output_config(TIMER0, 1);
+	timer_auto_reload_shadow_enable(TIMER0);
+	timer_enable(TIMER0);
+	timer_enable(TIMER16);
+	timer_enable(TIMER15);
 }
 
 void led_set_red_color(uint8_t value)
 {
-    timer_channel_output_pulse_value_config(TIMER15, 0, 0x100 - value);
+	timer_channel_output_pulse_value_config(TIMER15, 0, 0x100 - value);
 }
 
 void led_set_green_color(uint8_t value)
 {
-    timer_channel_output_pulse_value_config(TIMER16, 0, 0x100 - value);
+	timer_channel_output_pulse_value_config(TIMER16, 0, 0x100 - value);
 }
 
 void led_set_blue_color(uint8_t value)
 {
-    timer_channel_output_pulse_value_config(TIMER0, 2, 0x100 - value);
+	timer_channel_output_pulse_value_config(TIMER0, 2, 0x100 - value);
 }
 
 void leds_set_color(uint32_t rgb)
 {
-    led_set_red_color(rgb >> 16);
-    led_set_green_color(rgb >> 8);
-    led_set_blue_color(rgb);
+	led_set_red_color(rgb >> 16);
+	led_set_green_color(rgb >> 8);
+	led_set_blue_color(rgb);
 }
 
 int main(void)

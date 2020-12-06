@@ -22,14 +22,14 @@
 
 typedef struct 
 {
-    void ( *start)();
-    void ( *device_type)(enum DEVICE_TYPE dt);
-    void ( *glitching_started)();
-    void ( *payload_flash_res_and_cid)(uint32_t ret, uint8_t *cid);
-    void ( *new_config_and_save)(struct glitch_config *new_cfg, int save_ret);
-    void ( *_2_and_3)(struct glitch_config *new_config, uint8_t flags, unsigned int datalen, void *data, uint8_t unk);
-    void ( *end)();
-    void ( *adc)(uint32_t value);
+	void (*start)();
+	void (*device_type)(enum DEVICE_TYPE dt);
+	void (*glitching_started)();
+	void (*payload_flash_res_and_cid)(uint32_t ret, uint8_t *cid);
+	void (*new_config_and_save)(struct glitch_config *new_cfg, int save_ret);
+	void (*_2_and_3)(struct glitch_config *new_config, uint8_t flags, unsigned int datalen, void *data, uint8_t unk);
+	void (*end)();
+	void (*adc)(uint32_t value);
 } logger;
 
 extern logger null_logger;

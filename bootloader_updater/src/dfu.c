@@ -59,7 +59,7 @@ char erase_flash(uint8_t *dest)
 char burn_flash(uint8_t *dest, uint8_t *src, uint32_t len)
 {
 	fmc_unlock();
-    fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_WPERR | FMC_FLAG_PGERR);
+	fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_WPERR | FMC_FLAG_PGERR);
 	
 	for (unsigned int i = 0; i < len; i += 4)
 	{
@@ -71,7 +71,7 @@ char burn_flash(uint8_t *dest, uint8_t *src, uint32_t len)
 		}
 	}
 	
-    fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_WPERR | FMC_FLAG_PGERR);
+	fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_WPERR | FMC_FLAG_PGERR);
 	fmc_lock();
 	return 1;
 }
