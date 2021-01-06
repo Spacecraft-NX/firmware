@@ -24,7 +24,7 @@ For now you can't flash Spacecraft-NX without pluging in your modchip into your 
 * Plug in the other end of the cable to your Windows PC. (Linux support is work in progress. Feel free to send in a PR for OS X)
 * Download the [latest release](https://github.com/Spacecraft-NX/firmware/releases).
 * Unpack the archive
-* Double click the flash.bat
+* Double click the flash.bat __DO NOT UNPLUG THE USB CABLE IN THE MIDDLE OF FLASHING OR YOU BRICK THE CHIP__
 * Wait till it says `!!!DONE!!!`
 * Copy the payload into the root of the sdcard and rename it to `payload.bin`
 * On the first boot up your chip will enter into a training session, blinking yellow. This may take up to 30 minutes. (Recommended to plug in a charger)
