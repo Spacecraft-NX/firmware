@@ -35,6 +35,28 @@ void enter_sleep()
 
 void firmware_main()
 {
+	int fpgaSyncSuccess;
+	for (int syncAttempt = 100;; --syncAttempt)
+	{
+		gpio_mode_set(GPIOF, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, BIT(7));
+		delay_ms(5u);
+		int pinWhilePulledUp = gpio_input_bit_get(GPIOF, BIT(7));
+		// configure GPIO to input with pull-down
+		gpio_mode_set(GPIOF, GPIO_MODE_INPUT, GPIO_PUPD_PULLDOWN, BIT(7));
+		delay_ms(5u);
+		int pinWhilePulledDown = gpio_input_bit_get(GPIOF, BIT(7));
+		if (pinWhilePulledDown == 1) // FPGA was driving it high
+		{
+			fpgaSyncSuccess = pinWhilePulledUp && syncAttempt < 95;
+			break;
+		}
+		else if (syncAttempt == 0)
+		{
+			config_reset();
+			leds_set_color(0x00003f); // blue
+			while (1);
+		}
+	}
 	delay_init(96);
 
 	clocks_init();
@@ -46,12 +68,12 @@ void firmware_main()
 	adc_init(CONSOLE_STATE_ADC_PORT, CONSOLE_STATE_ADC_PIN, 3);
 	uint16_t pa3_voltage = adc_wait_eoc_read();
 
-	if (fpga_reset() < 0)
+	if (fpga_reset() != 0x900D0000)
 	{
 		leds_set_color(0x3f0000);
 		while (1);
 	}
-	else if (pa3_voltage < 1496)
+	else if (pa3_voltage < 1496 && fpga_read_magic() == 0x4D56492E)
 	{
 		config cfg;
 		if (config_load(&cfg) == 0xBAD0010B)
@@ -66,7 +88,7 @@ void firmware_main()
 				if (status == 0xBAD00107)
 					break;
 			}
-			leds_set_training(0); 
+			leds_set_training(0);
 		}
 
 		uint32_t status = glitch(&null_logger);

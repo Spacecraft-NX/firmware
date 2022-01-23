@@ -198,6 +198,18 @@ uint32_t fpga_read_mmc_flags()
 	return transfer_spi0_26_byte(0xB);
 }
 
+//grabs magic value off chinese qfn fpga
+
+uint32_t fpga_read_magic()
+{
+	uint8_t buf[5];
+	buf[0] = 0xEE;
+	gpioa_clear_pin4();
+	spi0_spi_transfer_buffer(buf, sizeof(buf));
+	gpioa_set_pin4();
+	return *(uint32_t*)(buf + 1);
+}
+
 void fpga_do_mmc_command()
 {
 	uint8_t cmd = 0x54;

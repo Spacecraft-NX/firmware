@@ -28,6 +28,9 @@ void clocks_init()
 	// FPGA
 	rcu_periph_clock_enable(RCU_SPI0);
 
+	//FPGA SYNC
+	rcu_periph_clock_enable(RCU_GPIOF);
+
 	// LED (BLUE)
 	rcu_periph_clock_enable(RCU_TIMER0);
 

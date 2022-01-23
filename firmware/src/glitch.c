@@ -366,8 +366,8 @@ int glitch(logger *lgr)
 	}
 	lgr->end();
 	leds_set_pulsing(0);
-
-	delay_ms(10);
+	//delay commented out to stay as close as possible to the chinese firmware.
+	//delay_ms(10);
 	unsigned int color;
 	switch (ret)
 	{
