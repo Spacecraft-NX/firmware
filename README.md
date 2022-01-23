@@ -1,3 +1,5 @@
+# THIS IS FOR THE QFN FPGA OLED MODCHIP. 
+
 # Spacecraft-NX
 
 ## What is this?
