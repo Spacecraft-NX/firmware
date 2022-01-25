@@ -186,7 +186,7 @@ void debug_main(struct bootloader_usb *usb)
 	clock_output_init();
 	fpga_init();
 	board_id_init();
-
+	
 	uint8_t first = 1;
 	while (1)
 	{
@@ -313,7 +313,7 @@ void debug_main(struct bootloader_usb *usb)
 				if (status == 0x900D0000)
 				{
 					leds_set_training(1);
-					int trains_left = 100;
+					int trains_left = 50;
 					while (trains_left)
 					{
 						status = glitch(&dbg_logger);
@@ -322,8 +322,13 @@ void debug_main(struct bootloader_usb *usb)
 						if (status == 0xBAD00107)
 							break;
 					}
-					if (!trains_left)
+					if (!trains_left || trains_left > 100) {
+						
 						dbglog("# Success!\n");
+
+					}
+
+						
 					leds_set_training(0); 
 				}
 				if (status == 0xBAD00107)

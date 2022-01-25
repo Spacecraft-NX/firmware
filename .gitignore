@@ -3,3 +3,5 @@ build
 *.bin
 *.a
 /.vs
+/release
+/release_china_edition.zip

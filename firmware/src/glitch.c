@@ -14,40 +14,44 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#include <glitch.h>
-#include <fpga.h>
-#include <device.h>
-#include <adc.h>
-#include <leds.h>
-#include <string.h>
-#include <delay.h>
-#include <mmc.h>
-#include <config.h>
-#include <payload.h>
 #include "mmc_defs.h"
+#include <adc.h>
+#include <board.h>
+#include <board_id.h>
+#include <clock.h>
+#include <config.h>
+#include <delay.h>
+#include <device.h>
+#include <fpga.h>
+#include <glitch.h>
+#include <leds.h>
+#include <mmc.h>
+#include <payload.h>
+#include <sdio.h>
+#include <string.h>
 
-typedef struct 
+typedef struct
 {
-	uint8_t *data;
+	uint8_t* data;
 	uint32_t datalen;
 	uint8_t cmd;
 } mmc_sniff_parser_ctx;
 
-void mmc_sniff_parser_init(mmc_sniff_parser_ctx *ctx, uint8_t *data, int datalen)
+void mmc_sniff_parser_init(mmc_sniff_parser_ctx* ctx, uint8_t* data, int datalen)
 {
 	ctx->data = data;
 	ctx->datalen = datalen;
 	ctx->cmd = 0;
 }
 
-int mmc_sniff_parser_parse(mmc_sniff_parser_ctx *ctx)
+int mmc_sniff_parser_parse(mmc_sniff_parser_ctx* ctx)
 {
 	if (ctx->datalen <= 5)
 		return 3;
 
-	uint8_t *data = ctx->data;
+	uint8_t* data = ctx->data;
 	char flags = data[0];
-	
+
 	int ret = 0;
 	if (flags & 0x40)
 	{
@@ -85,7 +89,7 @@ int mmc_sniff_parser_parse(mmc_sniff_parser_ctx *ctx)
 	return ret;
 }
 
-int read_glitch_result(uint8_t *buf)
+int read_glitch_result(uint8_t* buf)
 {
 	if (fpga_read_mmc_flags() & 0x40)
 	{
@@ -109,15 +113,19 @@ int rand()
 	rand_seed = 1664525 * rand_seed + 1013904223;
 	return rand_seed;
 }
-
-int glitch(logger *lgr)
+void sleep_fpga()
+{
+	leds_set_color(0);
+	fpga_power_off();
+	while (1)
+		pmu_to_standbymode(WFI_CMD);
+}
+int glitch(logger* lgr)
 {
 	uint32_t start_time = SysTick->VAL;
 
 	config cfg;
 	int needs_reflash = config_load(&cfg) == 0xBAD0010B || cfg.reflash;
- 
-	//qsort();
 
 	enum DEVICE_TYPE device = detect_device_type();
 	struct adc_param adc_min_values;
@@ -125,7 +133,7 @@ int glitch(logger *lgr)
 	adc_min_values.other_value = 0;
 	int ret = init_device_specific_adc(device, &adc_min_values);
 
-	uint16_t *offsets;
+	uint16_t* offsets;
 	unsigned int offsets_count;
 	if (device == DEVICE_TYPE_ERISTA)
 	{
@@ -177,7 +185,7 @@ int glitch(logger *lgr)
 	}
 
 	struct glitch_config glitch_cfg;
-	glitch_cfg.rng = 3;
+	glitch_cfg.rng = 11;
 	if (device == DEVICE_TYPE_ERISTA)
 	{
 		glitch_cfg.width = 35;
@@ -194,6 +202,7 @@ int glitch(logger *lgr)
 	char packages[128];
 	memset(packages, 0, sizeof(packages));
 	int glitch_retries = 0;
+	int cycle = 0;
 	if (!ret)
 	{
 		lgr->glitching_started();
@@ -216,7 +225,9 @@ int glitch(logger *lgr)
 
 			if (adc_wait_eoc_read() < adc_goal)
 			{
-				ret = adc_wait_for_min_value(lgr, adc_goal, 0);
+				ret = device == DEVICE_TYPE_LITE
+					? adc_wait_for_min_value(lgr, adc_goal - 100, 0)
+					: adc_wait_for_min_value(lgr, adc_goal, 0);
 				if (ret)
 					break;
 			}
@@ -238,36 +249,58 @@ int glitch(logger *lgr)
 				if (ret != 0x900D0008)
 					break;
 				ret = 0;
+				glitch_cfg.width = 70;
 			}
-
-			if (saved_idx < cfg.idx)
+			if (cfg.idx <= saved_idx)
 			{
-				if (glitch_cfg.rng == 3)
-				{
-					glitch_cfg.width = cfg.timings[saved_idx].width;
-					glitch_cfg.offset = cfg.timings[saved_idx].offset;
-					glitch_cfg.rng = 0;
-					++saved_idx;
-				}
-				else
-					++glitch_cfg.rng;
-			}
-			else
-			{
-				if (offsets_count <= ++offset_idx)
+				if (++offset_idx >= offsets_count)
 					offset_idx = 0;
 				glitch_cfg.offset = offsets[offset_idx];
 				glitch_cfg.rng = rand() & 3;
 			}
-			
-			if (glitch_cfg.width <= 200)
+			else if (glitch_cfg.rng == 11)
 			{
-				if (glitch_cfg.width <= 1)
-					glitch_cfg.width = 2;
+				if (cycle)
+				{
+					if (cycle == 1)
+					{
+						glitch_cfg.width = cfg.timings[saved_idx].width;
+						glitch_cfg.offset = cfg.timings[saved_idx].offset + 1;
+						glitch_cfg.rng = 0;
+						cycle = 2;
+					}
+					else
+					{
+						cycle = 0;
+						glitch_cfg.width = cfg.timings[saved_idx].width;
+						glitch_cfg.offset = cfg.timings[saved_idx].offset - 1;
+						glitch_cfg.rng = 0;
+						++cycle;
+					}
+				}
+				else
+				{
+					glitch_cfg.width = cfg.timings[saved_idx].width;
+					glitch_cfg.offset = cfg.timings[saved_idx].offset;
+					glitch_cfg.rng = 0;
+					cycle = 1;
+				}
 			}
 			else
 			{
+				++glitch_cfg.rng;
+			}
+			if (glitch_cfg.width > 200)
+			{
 				glitch_cfg.width = 200;
+				saved_idx = cfg.idx;
+				needs_reflash = 1;
+			}
+			else if (glitch_cfg.width <= 1)
+			{
+				glitch_cfg.width = 2;
+				saved_idx = cfg.idx;
+				needs_reflash = 1;
 			}
 			fpga_glitch_device(&glitch_cfg);
 			int success;
@@ -316,15 +349,15 @@ int glitch(logger *lgr)
 					++all_package_count;
 					switch (c)
 					{
-						case 1:
-							++packet_res_1_count;
-							break;
-						case 2:
-							++packet_res_2_count;
-							break;
-						case 3:
-							++too_short_count;
-							break;
+					case 1:
+						++packet_res_1_count;
+						break;
+					case 2:
+						++packet_res_2_count;
+						break;
+					case 3:
+						++too_short_count;
+						break;
 					}
 				}
 			}
@@ -366,23 +399,23 @@ int glitch(logger *lgr)
 	}
 	lgr->end();
 	leds_set_pulsing(0);
-	//delay commented out to stay as close as possible to the chinese firmware.
-	//delay_ms(10);
+
+	delay_ms(10);
 	unsigned int color;
 	switch (ret)
 	{
-		case 0x900D0006:
-			color = 0x003F00;	// green
-			break;
-		case 0xBAD00108:
-			color = 0x3F3F3F;	// white
-			break;
-		case 0xBAD00122:
-			color = 0x3F003F;	// magenta
-			break;
-		default:
-			color = 0x3F0000;	// red
-			break;
+	case 0x900D0006:
+		color = 0x003F00;	// green
+		break;
+	case 0xBAD00108:
+		color = 0x3F3F3F;	// white
+		break;
+	case 0xBAD00122:
+		color = 0x3F003F;	// magenta
+		break;
+	default:
+		color = 0x3F0000;	// red
+		break;
 	}
 	leds_set_color(color);
 	return ret;

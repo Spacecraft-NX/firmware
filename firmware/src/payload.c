@@ -17,13 +17,16 @@
 #include <payload.h>
 #include <mmc.h>
 #include <string.h>
-
+#include <leds.h>
 #include "erista_bct.h"
 #include "mariko_bct.h"
 #include "payload.h"
 
-uint32_t flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type)
+uint32_t 
+flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type)
 {
+	//set led to red when accessing boot0
+	leds_set_color(0x3f0000);
 	uint32_t ret = 0xBAD0010C;
 	int retry = 6;
 	while (--retry)
@@ -52,9 +55,14 @@ uint32_t flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type)
 		}
 
 		ret = mmc_check_and_if_different_write(0x1F80, payload, sizeof(payload));
-		if (!ret)
+		if (!ret) {
+			leds_set_color(0x003f00);
 			return 0x900D0008;
+		}
+			
 	}
+	leds_set_color(0x003f00);
+
 	return ret;
 }
 

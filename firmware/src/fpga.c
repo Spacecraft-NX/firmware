@@ -19,6 +19,8 @@
 #include <board.h>
 #include <delay.h>
 
+int fpgaSyncSuccess = 0;
+
 void fpga_init_spi(int prescale)
 {
 	spi_parameter_struct spi_struct;
@@ -198,8 +200,6 @@ uint32_t fpga_read_mmc_flags()
 	return transfer_spi0_26_byte(0xB);
 }
 
-//grabs magic value off chinese qfn fpga
-
 uint32_t fpga_read_magic()
 {
 	uint8_t buf[5];
@@ -207,7 +207,7 @@ uint32_t fpga_read_magic()
 	gpioa_clear_pin4();
 	spi0_spi_transfer_buffer(buf, sizeof(buf));
 	gpioa_set_pin4();
-	return *(uint32_t*)(buf + 1);
+	return *(uint32_t *)(buf + 1);
 }
 
 void fpga_do_mmc_command()

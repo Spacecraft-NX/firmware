@@ -34,7 +34,7 @@ struct glitch_config
 void fpga_glitch_device(struct glitch_config *cfg);
 uint32_t fpga_read_glitch_flags();
 uint32_t fpga_read_mmc_flags();
-
+uint32_t fpga_read_magic();
 void fpga_do_mmc_command();
 
 void fpga_read_buffer(uint8_t *buffer, uint32_t size);
