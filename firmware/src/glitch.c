@@ -169,13 +169,16 @@ int glitch(logger* lgr)
 				adc_goal = adc_min_values.other_value;
 				break;
 			}
-			if (adc_read >= adc_min_values.min_value)
+			if (adc_min_values.min_value <= adc_read)
 			{
 				adc_goal = adc_min_values.min_value;
 				ret = 0;
 				break;
 			}
-
+			if (was_the_device_reset && ret)
+			{
+				break;
+			}
 			if (!was_the_device_reset)
 			{
 				fpga_reset_device(0);
@@ -189,12 +192,12 @@ int glitch(logger* lgr)
 	if (device == DEVICE_TYPE_ERISTA)
 	{
 		glitch_cfg.width = 35;
-		glitch_cfg.offset = 876;
+		glitch_cfg.offset = 850;
 	}
 	else
 	{
-		glitch_cfg.width = 53;
-		glitch_cfg.offset = 1210;
+		glitch_cfg.width = 65;
+		glitch_cfg.offset = 850;
 	}
 
 	unsigned int saved_idx = 0;
@@ -216,9 +219,8 @@ int glitch(logger* lgr)
 				break;
 			}
 
-			if (glitch_retries >= 400)
+			if (glitch_retries > 0 && (glitch_retries % 400) == 0)
 			{
-				glitch_retries = 0;
 				saved_idx = cfg.idx;
 				needs_reflash = 1;
 			}
@@ -248,7 +250,6 @@ int glitch(logger* lgr)
 				lgr->payload_flash_res_and_cid(ret, cid);
 				if (ret != 0x900D0008)
 					break;
-				ret = 0;
 				glitch_cfg.width = 70;
 			}
 			if (cfg.idx <= saved_idx)
@@ -290,19 +291,20 @@ int glitch(logger* lgr)
 			{
 				++glitch_cfg.rng;
 			}
-			if (glitch_cfg.width > 200)
+			if (glitch_cfg.width > 70)
 			{
-				glitch_cfg.width = 200;
+				glitch_cfg.width = 70;
 				saved_idx = cfg.idx;
 				needs_reflash = 1;
 			}
-			else if (glitch_cfg.width <= 1)
+			else if (glitch_cfg.width <= 15)
 			{
-				glitch_cfg.width = 2;
+				glitch_cfg.width = 15;
 				saved_idx = cfg.idx;
 				needs_reflash = 1;
 			}
 			fpga_glitch_device(&glitch_cfg);
+			int resync;
 			int success;
 			uint32_t flags;
 			while (1)
@@ -369,21 +371,18 @@ int glitch(logger* lgr)
 					ret = 0xBAD00108;
 					break;
 				}
-				else
+				if (max_packet_res_1_count > packet_res_1_count)
 				{
-					if (max_packet_res_1_count > packet_res_1_count)
+					if (packet_res_2_count > 4)
 					{
-						if (packet_res_2_count > 4)
-						{
-							glitch_cfg.width++;
-							memset(packages, 0, sizeof(packages));
-						}
-					}
-					else
-					{
-						glitch_cfg.width--;
+						glitch_cfg.width++;
 						memset(packages, 0, sizeof(packages));
 					}
+				}
+				else
+				{
+					glitch_cfg.width--;
+					memset(packages, 0, sizeof(packages));
 				}
 			}
 			if (success)
