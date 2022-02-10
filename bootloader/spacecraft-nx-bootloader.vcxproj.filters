@@ -1,0 +1,88 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="Source files">
+      <UniqueIdentifier>{60c85a86-f41d-4efe-ac5a-d4c48c497ef2}</UniqueIdentifier>
+      <Extensions>cpp;c;cc;cxx;def;odl;idl;hpj;bat;asm;asmx</Extensions>
+    </Filter>
+    <Filter Include="Header files">
+      <UniqueIdentifier>{f3be6abb-75cf-47fb-92b2-75b0b8989d01}</UniqueIdentifier>
+      <Extensions>h;hpp;hxx;hm;inl;inc;xsd</Extensions>
+    </Filter>
+    <Filter Include="Resource files">
+      <UniqueIdentifier>{002af99b-f53d-43c8-85dd-fd0a692ec935}</UniqueIdentifier>
+      <Extensions>rc;ico;cur;bmp;dlg;rc2;rct;bin;rgs;gif;jpg;jpeg;jpe;resx;tiff;tif;png;wav</Extensions>
+    </Filter>
+    <Filter Include="Source files\Device-specific files">
+      <UniqueIdentifier>{1c43afad-bc02-4985-b42c-615c4efb5801}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header files\Device-specific files">
+      <UniqueIdentifier>{c2a32479-7211-4595-890e-51e9337a6f98}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="VisualGDB settings">
+      <UniqueIdentifier>{c973e94d-235a-417e-aae8-e7c8433d106a}</UniqueIdentifier>
+      <Extensions>vgdbsettings</Extensions>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="mcu.props">
+      <Filter>Source files\Device-specific files</Filter>
+    </None>
+    <None Include="spacecraft-nx-bootloader-Debug.vgdbsettings">
+      <Filter>VisualGDB settings</Filter>
+    </None>
+    <None Include="spacecraft-nx-bootloader-Release.vgdbsettings">
+      <Filter>VisualGDB settings</Filter>
+    </None>
+    <None Include="linker.ld" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="MCU.xml">
+      <Filter>VisualGDB settings</Filter>
+    </Xml>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\board.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\cdc_acm_core.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\delay.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\dfu.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\fpga.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+    <ClInclude Include="include\gd32f3x0_it.h">
+      <Filter>Header files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\cdc_acm_core.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\delay.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\dfu.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\fpga.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\gd32f3x0_it.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\main.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\sdio.c">
+      <Filter>Source files</Filter>
+    </ClCompile>
+    <ClCompile Include="src\startup_gd32f3x0.s" />
+  </ItemGroup>
+</Project>

@@ -1,0 +1,92 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|VisualGDB">
+      <Configuration>Debug</Configuration>
+      <Platform>VisualGDB</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|VisualGDB">
+      <Configuration>Release</Configuration>
+      <Platform>VisualGDB</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{1767E958-F677-4F58-A248-19D02813C15C}</ProjectGuid>
+    <BSP_ID>com.visualgdb.bsp.in-place</BSP_ID>
+    <BSP_VERSION>1.0</BSP_VERSION>
+    <InPlaceBSPSubdir />
+    <RelativeBSPPath />
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
+    <GNUConfigurationType>Debug</GNUConfigurationType>
+    <ToolchainID>d258b563-bcac-48e7-a72c-57928a375d8a</ToolchainID>
+    <ToolchainVersion>11.1.0/10.2/r0</ToolchainVersion>
+    <MCUPropertyListFile>$(ProjectDir)mcu.props</MCUPropertyListFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
+    <ToolchainID>d258b563-bcac-48e7-a72c-57928a375d8a</ToolchainID>
+    <ToolchainVersion>11.1.0/10.2/r0</ToolchainVersion>
+    <MCUPropertyListFile>$(ProjectDir)mcu.props</MCUPropertyListFile>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
+    <ClCompile>
+      <CPPLanguageStandard>GNUPP1Z</CPPLanguageStandard>
+      <AdditionalIncludeDirectories>include;../libs/CMSIS/include;../libs/GD32F3x0_standard_peripheral/include;../libs/GD32F3x0_usbfs_driver/include;../libs/bootloader_interface/include;%(ClCompile.AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>GD32F350;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>Os</Optimization>
+    </ClCompile>
+    <Link>
+      <AdditionalLinkerInputs>;%(Link.AdditionalLinkerInputs)</AdditionalLinkerInputs>
+      <LibrarySearchDirectories>../libs/CMSIS;../libs/GD32F3x0_standard_peripheral;../libs/GD32F3x0_usbfs_driver;%(Link.LibrarySearchDirectories)</LibrarySearchDirectories>
+      <AdditionalLibraryNames>CMSIS ;GD32F3x0_usbfs_driver;GD32F3x0_standard_peripheral;%(Link.AdditionalLibraryNames)</AdditionalLibraryNames>
+      <LinkerScript>linker.ld</LinkerScript>
+    </Link>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
+    <ClCompile>
+      <CPPLanguageStandard>GNUPP1Z</CPPLanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <None Include="linker.ld" />
+    <None Include="mcu.props" />
+    <None Include="spacecraft-nx-bootloader-Debug.vgdbsettings" />
+    <None Include="spacecraft-nx-bootloader-Release.vgdbsettings" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="MCU.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\board.h" />
+    <ClInclude Include="include\cdc_acm_core.h" />
+    <ClInclude Include="include\delay.h" />
+    <ClInclude Include="include\dfu.h" />
+    <ClInclude Include="include\fpga.h" />
+    <ClInclude Include="include\gd32f3x0_it.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\cdc_acm_core.c" />
+    <ClCompile Include="src\delay.c" />
+    <ClCompile Include="src\dfu.c" />
+    <ClCompile Include="src\fpga.c" />
+    <ClCompile Include="src\gd32f3x0_it.c" />
+    <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\sdio.c" />
+    <ClCompile Include="src\startup_gd32f3x0.s" />
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

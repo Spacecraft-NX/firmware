@@ -1,0 +1,134 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project DefaultTargets="Build" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup Label="ProjectConfigurations">
+    <ProjectConfiguration Include="Debug|VisualGDB">
+      <Configuration>Debug</Configuration>
+      <Platform>VisualGDB</Platform>
+    </ProjectConfiguration>
+    <ProjectConfiguration Include="Release|VisualGDB">
+      <Configuration>Release</Configuration>
+      <Platform>VisualGDB</Platform>
+    </ProjectConfiguration>
+  </ItemGroup>
+  <PropertyGroup Label="Globals">
+    <VCProjectVersion>16.0</VCProjectVersion>
+    <ProjectGuid>{FB6FD2A4-3BB6-4A79-A8AF-4A03D09496AD}</ProjectGuid>
+    <BSP_ID>com.visualgdb.bsp.in-place</BSP_ID>
+    <BSP_VERSION>1.0</BSP_VERSION>
+    <InPlaceBSPSubdir />
+    <RelativeBSPPath />
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
+  </PropertyGroup>
+  <PropertyGroup Label="Configuration" Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
+  </PropertyGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
+  <ImportGroup Label="ExtensionSettings">
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
+    <Import Project="bootloader.props" />
+  </ImportGroup>
+  <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'" />
+  <ImportGroup Label="Shared">
+  </ImportGroup>
+  <PropertyGroup Label="UserMacros" />
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
+    <GNUConfigurationType>Debug</GNUConfigurationType>
+    <ToolchainID>d258b563-bcac-48e7-a72c-57928a375d8a</ToolchainID>
+    <ToolchainVersion>11.1.0/10.2/r0</ToolchainVersion>
+    <MCUPropertyListFile>$(ProjectDir)mcu.props</MCUPropertyListFile>
+    <GenerateBuildScript>true</GenerateBuildScript>
+    <UserVariablePropertyListFile>$(ProjectDir)$(ProjectName)-user.props</UserVariablePropertyListFile>
+    <GenerateHexFile>true</GenerateHexFile>
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
+    <ToolchainID>d258b563-bcac-48e7-a72c-57928a375d8a</ToolchainID>
+    <ToolchainVersion>11.1.0/10.2/r0</ToolchainVersion>
+    <MCUPropertyListFile>$(ProjectDir)mcu.props</MCUPropertyListFile>
+  </PropertyGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|VisualGDB'">
+    <ClCompile>
+      <CPPLanguageStandard>GNUPP1Z</CPPLanguageStandard>
+      <AdditionalIncludeDirectories>include;../libs/CMSIS/include;../libs/GD32F3x0_standard_peripheral/include;../libs/GD32F3x0_usbfs_driver/include;../libs/bootloader_interface/include;%(ClCompile.AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <PreprocessorDefinitions>GD32F350;%(ClCompile.PreprocessorDefinitions)</PreprocessorDefinitions>
+      <Optimization>Os</Optimization>
+    </ClCompile>
+    <Link>
+      <AdditionalLinkerInputs>;%(Link.AdditionalLinkerInputs)</AdditionalLinkerInputs>
+      <LibrarySearchDirectories>../libs/CMSIS;../libs/GD32F3x0_standard_peripheral;../libs/GD32F3x0_usbfs_driver;%(Link.LibrarySearchDirectories)</LibrarySearchDirectories>
+      <AdditionalLibraryNames>CMSIS ;GD32F3x0_usbfs_driver;GD32F3x0_standard_peripheral;%(Link.AdditionalLibraryNames)</AdditionalLibraryNames>
+      <LinkerScript>linker.ld</LinkerScript>
+    </Link>
+    <ToolchainSettingsContainer>
+      <InstructionSet>THUMB</InstructionSet>
+    </ToolchainSettingsContainer>
+  </ItemDefinitionGroup>
+  <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|VisualGDB'">
+    <ClCompile>
+      <CPPLanguageStandard>GNUPP1Z</CPPLanguageStandard>
+    </ClCompile>
+  </ItemDefinitionGroup>
+  <ItemGroup>
+    <ClCompile Include="src\adc.c" />
+    <ClCompile Include="src\board_id.c" />
+    <ClCompile Include="src\clock.c" />
+    <ClCompile Include="src\config.c" />
+    <ClCompile Include="src\debug.c" />
+    <ClCompile Include="src\delay.c" />
+    <ClCompile Include="src\device.c" />
+    <ClCompile Include="src\fpga.c" />
+    <ClCompile Include="src\gd32f3x0_it.c" />
+    <ClCompile Include="src\glitch.c" />
+    <ClCompile Include="src\leds.c" />
+    <ClCompile Include="src\logger.c" />
+    <ClCompile Include="src\main.c" />
+    <ClCompile Include="src\mmc.c" />
+    <ClCompile Include="src\payload.c" />
+    <ClCompile Include="src\sdio.c" />
+    <ClCompile Include="src\sprintf.c" />
+    <ClCompile Include="src\startup_gd32f3x0.s" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="mcu.props" />
+    <None Include="spacecraft-nx-firmware-Debug.vgdbsettings" />
+    <None Include="spacecraft-nx-firmware-Release.vgdbsettings" />
+  </ItemGroup>
+  <ItemGroup>
+    <Xml Include="MCU.xml" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="include\adc.h" />
+    <ClInclude Include="include\board.h" />
+    <ClInclude Include="include\board_id.h" />
+    <ClInclude Include="include\clock.h" />
+    <ClInclude Include="include\config.h" />
+    <ClInclude Include="include\delay.h" />
+    <ClInclude Include="include\device.h" />
+    <ClInclude Include="include\fpga.h" />
+    <ClInclude Include="include\gd32f3x0_it.h" />
+    <ClInclude Include="include\glitch.h" />
+    <ClInclude Include="include\leds.h" />
+    <ClInclude Include="include\logger.h" />
+    <ClInclude Include="include\mmc.h" />
+    <ClInclude Include="include\payload.h" />
+    <ClInclude Include="include\sdio.h" />
+    <ClInclude Include="include\sprintf.h" />
+    <ClInclude Include="src\erista_bct.h" />
+    <ClInclude Include="src\mariko_bct.h" />
+    <ClInclude Include="src\mmc_defs.h" />
+    <ClInclude Include="src\payload.h" />
+    <ClInclude Include="src\sd.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <LinkerScript Include="linker.ld" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\bootloader\spacecraft-nx-bootloader.vcxproj">
+      <Project>{1767e958-f677-4f58-a248-19d02813c15c}</Project>
+    </ProjectReference>
+  </ItemGroup>
+  <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
+  <ImportGroup Label="ExtensionTargets">
+  </ImportGroup>
+</Project>

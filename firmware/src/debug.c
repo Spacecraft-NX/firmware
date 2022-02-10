@@ -314,18 +314,18 @@ void debug_main(struct bootloader_usb *usb)
 				{
 					leds_set_training(1);
 					int trains_left = 50;
-					while (trains_left)
+					do
 					{
 						status = glitch(&dbg_logger);
 						if (status == 0x900D0006)
+						{
 							trains_left--;
-						if (status == 0xBAD00107)
-							break;
-					}
-					if (!trains_left || trains_left > 100) {
-						
-						dbglog("# Success!\n");
-
+							dbglog("Train step successful; steps left: %d\n", trains_left);
+						}
+					} while (trains_left && status == 0x900D0006);
+										
+					if (trains_left == 0) {						
+						dbglog("# Success; all training attempts completed!\n");
 					}
 
 						

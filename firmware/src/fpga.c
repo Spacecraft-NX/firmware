@@ -19,7 +19,8 @@
 #include <board.h>
 #include <delay.h>
 
-int fpgaSyncSuccess = 0;
+int fpga_sync_failed = 1;
+int payload_not_yet_flashed = 1;
 
 void fpga_init_spi(int prescale)
 {

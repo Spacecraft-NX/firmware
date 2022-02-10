@@ -1,0 +1,31 @@
+﻿
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 16
+VisualStudioVersion = 16.0.31729.503
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "spacecraft-nx-firmware", "spacecraft-nx-firmware.vcxproj", "{FB6FD2A4-3BB6-4A79-A8AF-4A03D09496AD}"
+EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "spacecraft-nx-bootloader", "..\bootloader\spacecraft-nx-bootloader.vcxproj", "{1767E958-F677-4F58-A248-19D02813C15C}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|VisualGDB = Debug|VisualGDB
+		Release|VisualGDB = Release|VisualGDB
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{FB6FD2A4-3BB6-4A79-A8AF-4A03D09496AD}.Debug|VisualGDB.ActiveCfg = Debug|VisualGDB
+		{FB6FD2A4-3BB6-4A79-A8AF-4A03D09496AD}.Debug|VisualGDB.Build.0 = Debug|VisualGDB
+		{FB6FD2A4-3BB6-4A79-A8AF-4A03D09496AD}.Release|VisualGDB.ActiveCfg = Release|VisualGDB
+		{FB6FD2A4-3BB6-4A79-A8AF-4A03D09496AD}.Release|VisualGDB.Build.0 = Release|VisualGDB
+		{1767E958-F677-4F58-A248-19D02813C15C}.Debug|VisualGDB.ActiveCfg = Debug|VisualGDB
+		{1767E958-F677-4F58-A248-19D02813C15C}.Debug|VisualGDB.Build.0 = Debug|VisualGDB
+		{1767E958-F677-4F58-A248-19D02813C15C}.Release|VisualGDB.ActiveCfg = Release|VisualGDB
+		{1767E958-F677-4F58-A248-19D02813C15C}.Release|VisualGDB.Build.0 = Release|VisualGDB
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {0BDB6354-50D5-4F1D-AC8B-D6B429C8D724}
+	EndGlobalSection
+EndGlobal

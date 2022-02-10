@@ -45,7 +45,6 @@ void firmware_main()
 	board_id_init();
 
 	int syncAttempt = 100;
-	int fpgaSyncSuccess;
 	while (1)
 	{
 		gpio_mode_set(GPIOF, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, BIT(7));
@@ -59,7 +58,7 @@ void firmware_main()
 
 		if (pinWhilePulledDown && pinWhilePulledUp && syncAttempt < 95)
 		{
-			fpgaSyncSuccess = 1;
+			fpga_sync_failed = 1;
 			break;
 		}
 		if (pinWhilePulledUp == 1) // FPGA was driving it high
@@ -82,21 +81,18 @@ void firmware_main()
 		leds_set_color(0x3f0000);
 		while (1) ;
 	}
-	else if (pa3_voltage < 1496 && fpga_read_magic() == 0x2E49564D)
+	else if (pa3_voltage < 1596 && fpga_read_magic() == 0x2E49564D)
 	{
 		config cfg;
 		if (config_load(&cfg) == 0xBAD0010B)
 		{
 			leds_set_training(1);
 			int trains_left = 50;
-			while (trains_left)
+			uint32_t status;
+			do
 			{
-				uint32_t status = glitch(&null_logger);
-				if (status == 0x900D0006)
-					trains_left--;
-				if (status == 0xBAD00107)
-					break;
-			}
+				status = glitch(&null_logger);
+			} while (--trains_left && status != 0xBAD00107 && status != 0xBAD00113);
 			leds_set_training(0); 
 		}
 

@@ -105,7 +105,7 @@ int read_glitch_result(uint8_t* buf)
 }
 
 uint16_t erista_offsets[] = { 825, 830, 835, 840, 845, 850, 855, 860, 865, 870, 875, 880, 885, 890, 895, 900, 905 };
-uint16_t mariko_offsets[] = { 820, 825, 830, 835, 840, 845, 850, 855, 860, 865, 870, 875, 880 };
+uint16_t mariko_offsets[] = { 800, 805, 810, 815, 820, 825, 830, 835, 840, 845, 850, 855, 860, 865, 870, 875, 880 };
 
 uint32_t rand_seed = 0;
 int rand()
@@ -245,11 +245,16 @@ int glitch(logger* lgr)
 					cfg.reflash = 0;
 					config_save(&cfg);
 				}
-				uint8_t cid[16];
-				ret = flash_payload(cid, device);
-				lgr->payload_flash_res_and_cid(ret, cid);
-				if (ret != 0x900D0008)
-					break;
+
+				if (payload_not_yet_flashed && !fpga_sync_failed)
+				{
+					uint8_t cid[16];
+					ret = flash_payload(cid, device);
+					lgr->payload_flash_res_and_cid(ret, cid);
+					if (ret != 0x900D0008)
+						break;
+					payload_not_yet_flashed = 0;
+				}
 				glitch_cfg.width = 70;
 			}
 			if (cfg.idx <= saved_idx)

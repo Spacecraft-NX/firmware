@@ -1,0 +1,39 @@
+<?xml version="1.0"?>
+<EmbeddedProfile xmlns:xsd="http://www.w3.org/2001/XMLSchema" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance">
+  <ToolchainID>d258b563-bcac-48e7-a72c-57928a375d8a</ToolchainID>
+  <ToolchainVersion>
+    <GCC>11.1.0</GCC>
+    <GDB>10.2</GDB>
+    <Revision>0</Revision>
+  </ToolchainVersion>
+  <BspID>com.visualgdb.bsp.in-place</BspID>
+  <BspVersion>1.0</BspVersion>
+  <MCUProperties>
+    <Entries />
+  </MCUProperties>
+  <BSPSourceFolderName>Device-specific files</BSPSourceFolderName>
+  <InPlaceMCU>
+    <CompilationFlags>
+      <CFLAGS>-g -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-inline -Wall -fshort-wchar -fstrict-volatile-bitfields</CFLAGS>
+      <CXXFLAGS>-g -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-inline -Wall -fshort-wchar -fstrict-volatile-bitfields</CXXFLAGS>
+      <LDFLAGS>-Wl,--no-wchar-size-warning</LDFLAGS>
+      <ASFLAGS>-g -Os -ffunction-sections -fdata-sections -fomit-frame-pointer -fno-inline -Wall -fshort-wchar -fstrict-volatile-bitfields</ASFLAGS>
+      <LinkerScript />
+      <COMMONFLAGS>-mcpu=cortex-m4 -march=armv7e-m -mthumb -mthumb-interwork -munaligned-access</COMMONFLAGS>
+      <EnableLinkerGroups>true</EnableLinkerGroups>
+    </CompilationFlags>
+    <FLASHSize>0</FLASHSize>
+    <RAMSize>0</RAMSize>
+    <FLASHBase>4294967295</FLASHBase>
+    <RAMBase>4294967295</RAMBase>
+    <AdditionalSourcesRequiredForTesting>false</AdditionalSourcesRequiredForTesting>
+  </InPlaceMCU>
+  <MCUMakFile>mcu.mak</MCUMakFile>
+  <ReferencedFrameworks />
+  <FrameworkProperties>
+    <Entries />
+  </FrameworkProperties>
+  <TestFrameworkProperties>
+    <Entries />
+  </TestFrameworkProperties>
+</EmbeddedProfile>

@@ -19,6 +19,9 @@
 
 #include <stdint.h>
 
+extern int fpga_sync_failed;
+extern int payload_not_yet_flashed;
+
 void fpga_init();
 uint32_t fpga_reset();
 void fpga_power_off();

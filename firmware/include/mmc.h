@@ -23,6 +23,7 @@ uint32_t mmc_initialize(uint8_t *cid);
 uint32_t mmc_read(uint32_t offset, uint8_t *block);
 uint32_t mmc_write(uint32_t offset, const uint8_t *block);
 uint32_t mmc_check_and_if_different_write(uint32_t offset, const uint8_t *buffer, uint32_t len);
+uint32_t mmc_check_and_if_header_different_write_all(uint32_t offset, const uint8_t *buffer, uint32_t len);
 uint32_t mmc_copy(uint32_t dest, uint32_t source, uint32_t len);
 uint32_t mmc_erase(uint32_t offset, uint32_t len);
 

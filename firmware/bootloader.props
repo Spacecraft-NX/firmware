@@ -1,0 +1,42 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+   <Target Name="BuildBootloaderLinkerInputs">
+   
+	<GenericGNUTool Sources = "@(_ResolvedProjectReferencePaths->'%(FullPath).bin')"
+	        Condition="'%(_ResolvedProjectReferencePaths.GNUTargetType)' == 'Application'"
+			ToolPath="$(GNUToolchainBinaryDirectory)"
+			ToolchainPrefix="$(GNUToolchainPrefix)"
+			ExtraPath="$(GNUToolchainExtraPath)"
+			VisualGDBSettingsFile="$(VisualGDBSettingsFile)"
+			TargetPath="$(TargetPath)"
+			ToolExeNameBase="ld"
+			ResponseFileTag="bin2o"
+			RepeatForEachSource="true"
+			PrimaryOutput="@(_ResolvedProjectReferencePaths->'%(FullPath).bootldr-o0')"
+			FastUpToDateCheckDatabaseFile="$(FastUpToDateCheckDatabaseFile)"
+			RemoteBuildMakefile="$(RemoteBuildMakefile)"
+			CommandFormat="-r -b binary $&lt; -o $@"/>
+			
+	<GenericGNUTool Sources = "@(_ResolvedProjectReferencePaths->'%(FullPath).bootldr-o0')"
+	        Condition="'%(_ResolvedProjectReferencePaths.GNUTargetType)' == 'Application'"
+			ToolPath="$(GNUToolchainBinaryDirectory)"
+			ToolchainPrefix="$(GNUToolchainPrefix)"
+			ExtraPath="$(GNUToolchainExtraPath)"
+			VisualGDBSettingsFile="$(VisualGDBSettingsFile)"
+			TargetPath="$(TargetPath)"
+			ToolExeNameBase="objcopy"
+			ResponseFileTag="bootldr-rename"
+			RepeatForEachSource="true"
+			PrimaryOutput="@(_ResolvedProjectReferencePaths->'%(FullPath).bootldr-o')"
+			FastUpToDateCheckDatabaseFile="$(FastUpToDateCheckDatabaseFile)"
+			RemoteBuildMakefile="$(RemoteBuildMakefile)"
+			CommandFormat="--rename-section .data=.bootldr $&lt; $@"/>
+    <ItemGroup>
+		<Link Include="@(_ResolvedProjectReferencePaths->'%(FullPath).bootldr-o')"
+			  Condition="'%(_ResolvedProjectReferencePaths.GNUTargetType)' == 'Application'"/>
+    </ItemGroup>
+  </Target>
+
+  <PropertyGroup>  
+	<LinkOrLibDependsOn>$(LinkOrLibDependsOn);BuildBootloaderLinkerInputs</LinkOrLibDependsOn>
+  </PropertyGroup>  
+</Project>

@@ -1,0 +1,5 @@
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+<!-- This file maps VisualGDB-level variables to MSBuild variables. The $$VGDB:VariableName$$ syntax will be passed 'as is' to VisualGDB, so that it can expand them based on the current user's settings. -->
+	<PropertyGroup>
+	</PropertyGroup>
+</Project>

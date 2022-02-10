@@ -217,6 +217,37 @@ uint32_t mmc_check_and_if_different_write(uint32_t offset, const uint8_t *buffer
 	return 0;
 }
 
+uint32_t mmc_check_and_if_header_different_write_all(uint32_t offset, const uint8_t *buffer, uint32_t len)
+{
+	uint8_t tmp[512];
+	memset(tmp, 0, sizeof(tmp));
+	len = (len + sizeof(tmp) - 1) / sizeof(tmp);
+
+	// Read header.
+	uint32_t status = mmc_read(offset, tmp);
+	if (status)
+		return status;
+
+	// Skip bad block table and check if signature doesn't match.
+	if (memcmp(&tmp[0x10], &buffer[0x10], 0x100))
+	{
+		for (int i = 0; i < len; i++)
+		{
+			uint32_t status = mmc_read(offset + i, tmp);
+			if (status)
+				return status;
+			if (memcmp(tmp, &buffer[i * sizeof(tmp)], sizeof(tmp)))
+			{
+				uint32_t status = mmc_write(offset + i, &buffer[i * sizeof(tmp)]);
+				if (status)
+					return status;
+			}
+		}
+	}
+
+	return 0;
+}
+
 uint32_t mmc_copy(uint32_t dest, uint32_t source, uint32_t len)
 {
 	uint8_t tmp[512];

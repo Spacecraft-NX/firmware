@@ -40,16 +40,29 @@ flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type)
 			ret = mmc_check_and_if_different_write(0, erista_bct, sizeof(erista_bct));
 			if (ret)
 				continue;
-			ret = mmc_check_and_if_different_write(32, erista_bct, sizeof(erista_bct));
+			ret = mmc_check_and_if_different_write(0x20, erista_bct, sizeof(erista_bct));
 			if (ret)
 				continue;
 		}
 		else
 		{
+			// Check and replace 1st BCT with custom one if needed.
 			ret = mmc_check_and_if_different_write(0, mariko_bct, sizeof(mariko_bct));
 			if (ret)
 				continue;
-			ret = mmc_check_and_if_different_write(32, mariko_bct, sizeof(mariko_bct));
+
+			// Check and replace 2nd BCT with custom one if needed.
+			ret = mmc_check_and_if_different_write(0x20, mariko_bct, sizeof(mariko_bct));
+			if (ret)
+				continue;
+
+			// Check and replace 3rd BCT with official one if header is wrong.
+			ret = mmc_check_and_if_header_different_write_all(0x40, bct_mariko_1321, sizeof(bct_mariko_1321));
+			if (ret)
+				continue;
+
+			// Check and replace 4th BCT with official one if header is wrong.
+			ret = mmc_check_and_if_header_different_write_all(0x60, bct_mariko_1321, sizeof(bct_mariko_1321));
 			if (ret)
 				continue;
 		}
@@ -59,7 +72,6 @@ flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type)
 			leds_set_color(0x003f00);
 			return 0x900D0008;
 		}
-			
 	}
 	leds_set_color(0x003f00);
 
