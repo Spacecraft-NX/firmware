@@ -67,7 +67,6 @@ void firmware_main()
 		}
 		if (syncAttempt == 0)
 		{
-			config_reset();
 			leds_set_color(0x00003f); // blue
 			while (1) ;
 		}
