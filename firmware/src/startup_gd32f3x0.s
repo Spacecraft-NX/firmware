@@ -108,7 +108,7 @@ _start:
 
 .global firmware_version
 firmware_version:
-				.word	 2
+				.word	 0x4
 
 // reset Handler
 .global Reset_Handler

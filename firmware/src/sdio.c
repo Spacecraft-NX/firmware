@@ -6,7 +6,7 @@ extern int firmware_version;
 
 void sdio_handler()
 {
-	fpga_enter_cmd_mode();
+	
 
 	while (1)
 	{

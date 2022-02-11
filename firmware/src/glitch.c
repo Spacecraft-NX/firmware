@@ -392,12 +392,22 @@ int glitch(logger* lgr)
 			}
 			if (success)
 			{
-				if (config_add_new(&cfg, &glitch_cfg) == 0x900D0007)
+				// Confirm glitch success by awaiting command over eMMC bus.
+				// This detects false-positives.
+				fpga_enter_cmd_mode();
+				unsigned int flag_reads = device == DEVICE_TYPE_ERISTA ? 150000 : 70000;
+				for (; flag_reads > 0 && (fpga_read_mmc_flags() & 0x10) == 0x00; flag_reads--)
+					;
+
+				if (flag_reads > 0)
 				{
-					lgr->new_config_and_save(&glitch_cfg, config_save(&cfg));
+					if (config_add_new(&cfg, &glitch_cfg) == 0x900D0007)
+					{
+						lgr->new_config_and_save(&glitch_cfg, config_save(&cfg));
+					}
+					ret = 0x900D0006;
+					break; // glitch confirmed, don't retry
 				}
-				ret = 0x900D0006;
-				break;
 			}
 		}
 	}
