@@ -281,7 +281,7 @@ int glitch(logger* lgr)
 						glitch_cfg.width = cfg.timings[saved_idx].width;
 						glitch_cfg.offset = cfg.timings[saved_idx].offset - 1;
 						glitch_cfg.rng = 0;
-						++cycle;
+						saved_idx++;
 					}
 				}
 				else
