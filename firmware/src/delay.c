@@ -17,7 +17,7 @@
 #include <gd32f3x0.h>
 #include <delay.h>
 
-void delay_init(uint8_t sysclk)
+void delay_init()
 {
 	SysTick->LOAD = 0xFFFFFF;
 	SysTick->VAL = 0;

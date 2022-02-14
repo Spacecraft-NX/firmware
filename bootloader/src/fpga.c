@@ -176,7 +176,7 @@ void fpga_reset_device(int do_clock_stuck_glitch)
 	}
 }
 
-void fpga_glitch_device(struct glitch_config *cfg)
+void fpga_glitch_device(glitch_cfg_t *cfg)
 {
 	transfer_spi0_24_6(0);
 	transfer_spi0_24_word(0x1, cfg->offset);

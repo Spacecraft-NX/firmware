@@ -34,7 +34,7 @@ _start:
 				.word	 DebugMon_Handler					// Debug Monitor Handler
 				.word	 0									// Reserved
 				.word	 PendSV_Handler						// PendSV Handler
-				.word	 SysTick_Handler					// SysTick Handler
+				.word	 SysTick_Handler_cnt				// SysTick Handler
 
 				// external interrupts handler
 				.word	 WWDGT_IRQHandler					// 16:Window Watchdog Timer
@@ -108,7 +108,7 @@ _start:
 
 .global firmware_version
 firmware_version:
-				.word	 2
+				.word	 0x0005
 
 // reset Handler
 .global Reset_Handler
@@ -163,8 +163,8 @@ DebugMon_Handler:
 .weak PendSV_Handler
 PendSV_Handler:
 .thumb_func
-.weak SysTick_Handler
-SysTick_Handler:
+.weak SysTick_Handler_cnt
+SysTick_Handler_cnt:
 
 // external interrupts handler
 .thumb_func

@@ -27,8 +27,8 @@ uint16_t adc_wait_eoc_read();
 
 struct adc_param
 {
-	uint16_t min_value;
-	uint16_t other_value;
+	uint16_t poweron_threshold;
+	uint16_t glitch_power_threshold;
 };
 
 int init_device_specific_adc(enum DEVICE_TYPE dt, struct adc_param *pap);

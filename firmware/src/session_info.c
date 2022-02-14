@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Spacecraft-NX
+ * Copyright (c) 2021 HWFLY
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -14,24 +14,6 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __LOGGER_H__
-#define __LOGGER_H__
+#include "session_info.h"
 
-#include <config.h>
-#include <device.h>
-
-typedef struct 
-{
-	void (*start)();
-	void (*device_type)(enum DEVICE_TYPE dt);
-	void (*glitching_started)();
-	void (*payload_flash_res_and_cid)(uint32_t ret, uint8_t *cid);
-	void (*new_config_and_save)(glitch_cfg_t *new_cfg, int save_ret);
-	void (*_2_and_3)(glitch_cfg_t* new_config, uint8_t flags, unsigned int datalen, void *data, uint8_t unk);
-	void (*end)();
-	void (*adc)(uint32_t value);
-} logger;
-
-extern logger null_logger;
-
-#endif
+session_info_t session_info = {0};

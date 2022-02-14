@@ -19,22 +19,25 @@
 
 #include <stdint.h>
 
+extern int fpga_sync_failed;
+extern int payload_not_yet_flashed;
+
 void fpga_init();
 uint32_t fpga_reset();
 void fpga_power_off();
 
 void fpga_select_active_buffer(uint8_t value);
 void fpga_reset_device(int do_clock_stuck_glitch);
-struct glitch_config
+typedef struct 
 {
 	uint32_t width;
 	uint32_t offset;
 	uint32_t rng;
-};
-void fpga_glitch_device(struct glitch_config *cfg);
+} glitch_cfg_t;
+void fpga_glitch_device(glitch_cfg_t *cfg);
 uint32_t fpga_read_glitch_flags();
 uint32_t fpga_read_mmc_flags();
-
+uint32_t fpga_read_magic();
 void fpga_do_mmc_command();
 
 void fpga_read_buffer(uint8_t *buffer, uint32_t size);

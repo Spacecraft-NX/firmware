@@ -29,6 +29,7 @@
 #include <stdarg.h>
 #include <clock.h>
 #include <payload.h>
+#include <timer.h>
 
 struct bootloader_usb *g_usb;
 
@@ -104,12 +105,12 @@ void dbg_logger_payload_flash_res_and_cid(uint32_t status, uint8_t *cid)
 	dbglog("# Status: %X\n", status);
 }
 
-void dbg_logger_new_config_and_save(struct glitch_config *new_cfg, int save_ret)
+void dbg_logger_new_config_and_save(glitch_cfg_t *new_cfg, int save_ret)
 {
 	dbglog("new cfg: [%d, %d, %d] save res: %x\n", new_cfg->offset, new_cfg->width, new_cfg->rng, save_ret);
 }
 
-void dbg_logger_2_and_3(struct glitch_config *new_cfg, uint8_t flags, unsigned int datalen, void *data, uint8_t unk)
+void dbg_logger_2_and_3(glitch_cfg_t *new_cfg, uint8_t flags, unsigned int datalen, void *data, uint8_t unk)
 {
 	dbglog("glitch info: [%d, %d, %d] %x %x ", new_cfg->offset, new_cfg->width, new_cfg->rng, flags, unk);
 	for (int i = 0; i < datalen; ++i)
@@ -151,7 +152,7 @@ int wait_for_power_on(enum DEVICE_TYPE *pdt)
 	if (ret)
 		return ret;
 
-	ret = adc_wait_for_min_value(&dbg_logger, ap.min_value, 0);
+	ret = adc_wait_for_min_value(&dbg_logger, ap.poweron_threshold, 0);
 	if (ret)
 		return ret;
 
@@ -168,7 +169,7 @@ int reset_device_and_wait_for_power_on()
 	if (ret)
 		return ret;
 
-	ret = adc_wait_for_min_value(&dbg_logger, ap.min_value, 0);
+	ret = adc_wait_for_min_value(&dbg_logger, ap.poweron_threshold, 0);
 	if (ret)
 		return ret;
 
@@ -179,8 +180,9 @@ void debug_main(struct bootloader_usb *usb)
 {
 	g_usb = usb;
 
-	delay_init(96);
+	delay_init();
 	clocks_init();
+	timer_global_init();
 	leds_set_color(0x3f3f00);
 	leds_init();
 	clock_output_init();
@@ -252,8 +254,9 @@ void debug_main(struct bootloader_usb *usb)
 			{
 				dbglog("# Diagnosing...\n");
 				uint32_t status = fpga_reset();
+				session_info_t si = {0};
 				if (status == 0x900D0000)
-					status = glitch(&dbg_logger);
+					status = glitch(&dbg_logger, &si);
 				dbglog("# Diagnose status: %08X\n", status);
 				if (status == 0xBAD00107)
 				{
@@ -313,17 +316,23 @@ void debug_main(struct bootloader_usb *usb)
 				if (status == 0x900D0000)
 				{
 					leds_set_training(1);
-					int trains_left = 100;
-					while (trains_left)
+					int trains_left = 50;
+					session_info_t si = {0};
+					do
 					{
-						status = glitch(&dbg_logger);
+						status = glitch(&dbg_logger, &si);
 						if (status == 0x900D0006)
+						{
 							trains_left--;
-						if (status == 0xBAD00107)
-							break;
+							dbglog("Train step successful; steps left: %d\n", trains_left);
+						}
+					} while (trains_left && status == 0x900D0006);
+										
+					if (trains_left == 0) {						
+						dbglog("# Success; all training attempts completed!\n");
 					}
-					if (!trains_left)
-						dbglog("# Success!\n");
+
+						
 					leds_set_training(0); 
 				}
 				if (status == 0xBAD00107)
@@ -334,13 +343,13 @@ void debug_main(struct bootloader_usb *usb)
 			}
 			case 'c':
 			{
-				config cfg;
+				config_t cfg;
 				uint32_t status = config_load(&cfg);
 				dbglog("# Status: %08X\n", status);
 				if (status == 0x900D0007)
 				{
-					dbglog("# Config count: %d\n", cfg.idx);
-					for (int i = 0; i < cfg.idx; ++i)
+					dbglog("# Config count: %d\n", cfg.count);
+					for (int i = 0; i < cfg.count; ++i)
 						dbglog("# %02d: [%d, %d] %d\n", i, cfg.timings[i].offset, cfg.timings[i].width, cfg.timings[i].success);
 				}
 				break;

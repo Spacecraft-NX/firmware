@@ -19,6 +19,9 @@
 #include <board.h>
 #include <delay.h>
 
+int fpga_sync_failed = 1;
+int payload_not_yet_flashed = 1;
+
 void fpga_init_spi(int prescale)
 {
 	spi_parameter_struct spi_struct;
@@ -176,7 +179,7 @@ void fpga_reset_device(int do_clock_stuck_glitch)
 	}
 }
 
-void fpga_glitch_device(struct glitch_config *cfg)
+void fpga_glitch_device(glitch_cfg_t *cfg)
 {
 	transfer_spi0_24_6(0);
 	transfer_spi0_24_word(0x1, cfg->offset);
@@ -196,6 +199,16 @@ uint32_t fpga_read_glitch_flags()
 uint32_t fpga_read_mmc_flags()
 {
 	return transfer_spi0_26_byte(0xB);
+}
+
+uint32_t fpga_read_magic()
+{
+	uint8_t buf[5];
+	buf[0] = 0xEE;
+	gpioa_clear_pin4();
+	spi0_spi_transfer_buffer(buf, sizeof(buf));
+	gpioa_set_pin4();
+	return *(uint32_t *)(buf + 1);
 }
 
 void fpga_do_mmc_command()

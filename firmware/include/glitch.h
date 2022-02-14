@@ -19,7 +19,8 @@
 
 #include <stdint.h>
 #include <logger.h>
+#include <session_info.h>
 
-int glitch(logger *lgr);
+int glitch(logger* lgr, session_info_t* session_info);
 
 #endif

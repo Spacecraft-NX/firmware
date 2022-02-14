@@ -53,22 +53,22 @@ int init_device_specific_adc(enum DEVICE_TYPE dt, struct adc_param *pap)
 	if (dt == DEVICE_TYPE_ERISTA)
 	{
 		adc_init(GPIOB, GPIO_PIN_0, 8);
-		pap->min_value = 1200;
-		pap->other_value = 1376;
+		pap->poweron_threshold = 1200;
+		pap->glitch_power_threshold = 1376;
 		return 0;
 	}
 	if (dt == DEVICE_TYPE_MARIKO)
 	{
 		adc_init(GPIOB, GPIO_PIN_1, 9);
-		pap->min_value = 1024;
-		pap->other_value = 1296;
+		pap->poweron_threshold = 1024;
+		pap->glitch_power_threshold = 1296;
 		return 0;
 	}
 	if (dt == DEVICE_TYPE_LITE)
 	{
 		adc_init(GPIOA, GPIO_PIN_2, 2);
-		pap->min_value = 1024;
-		pap->other_value = 1296;
+		pap->poweron_threshold = 1024;
+		pap->glitch_power_threshold = 1296;
 		return 0;
 	}
 	return 0xBAD00107;
