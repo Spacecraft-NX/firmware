@@ -41,7 +41,7 @@ void null_logger_new_config_and_save(glitch_cfg_t *new_cfg, int save_ret)
 
 }
 
-void null_logger_2_and_3(glitch_cfg_t *new_config, uint8_t flags, unsigned int datalen, void *data, uint8_t unk)
+void null_logger_glitch_result(glitch_cfg_t *new_cfg, uint8_t glitch_res, uint8_t mmc_flags, unsigned int datalen, uint8_t *data, uint8_t glitch_flags)
 {
 
 }
@@ -56,6 +56,12 @@ void null_logger_adc(uint32_t value)
 
 }
 
+void null_logger_stats(uint32_t attempt, uint16_t offset, uint8_t width, uint8_t subcycle, uint8_t needs_reflash)
+{
+
+}
+
+
 logger null_logger =
 {
 	null_logger_start,
@@ -63,7 +69,8 @@ logger null_logger =
 	null_logger_glitching_started,
 	null_logger_payload_flash_res_and_cid,
 	null_logger_new_config_and_save,
-	null_logger_2_and_3,
+	null_logger_glitch_result,
 	null_logger_end,
-	null_logger_adc
+	null_logger_adc,
+	null_logger_stats
 };

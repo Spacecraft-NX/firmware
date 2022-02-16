@@ -27,12 +27,11 @@ uint16_t adc_wait_eoc_read();
 
 struct adc_param
 {
-	uint16_t poweron_threshold;
-	uint16_t glitch_power_threshold;
+	uint16_t poweron_threshold; // min ADC value where device is considered on (~0.8V)
+	uint16_t glitch_threshold; // min ADC value from where we can begin attemping to glitch (~1.2V)
 };
 
 int init_device_specific_adc(enum DEVICE_TYPE dt, struct adc_param *pap);
-
 int adc_wait_for_min_value(logger *lgr, unsigned int min_adc_value, uint16_t *adc_read_out);
 
 #endif

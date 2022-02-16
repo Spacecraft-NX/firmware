@@ -16,4 +16,4 @@
 
 #include "session_info.h"
 
-session_info_t session_info = {0};
+session_info_t g_session_info = {0};

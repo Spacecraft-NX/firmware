@@ -19,8 +19,10 @@
 
 #include <stdint.h>
 #include <fpga.h>
+#include <device.h>
+#include <board_id.h>
 
-#define SESSION_INFO_FORMAT_VER 1
+#define SESSION_INFO_FORMAT_VER 2
 #define SESSION_INFO_MAGIC 0x80B54D
 
 typedef struct
@@ -38,10 +40,14 @@ typedef struct
 	uint8_t payload_flashed : 1;
 	uint8_t reserved : 6;
 
+	enum DEVICE_TYPE device_type;
+	enum BOARD_ID board_id;
+	uint32_t fpga_type;
+
 	glitch_cfg_t glitch_cfg;
 
 } __attribute__((packed)) session_info_t;
 
-extern session_info_t session_info;
+extern session_info_t g_session_info;
 
 #endif

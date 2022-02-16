@@ -18,8 +18,11 @@
 #include <fpga.h>
 #include <board.h>
 #include <delay.h>
+#include <statuscode.h>
+#include <string.h>
 
 int fpga_sync_failed = 1;
+
 int payload_not_yet_flashed = 1;
 
 void fpga_init_spi(int prescale)
@@ -51,8 +54,8 @@ void fpga_init()
 	gpio_output_options_set(FPGA_SCK_GPIO_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, FPGA_SCK_GPIO_PIN);
 	gpio_output_options_set(FPGA_MOSI_GPIO_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, FPGA_MOSI_GPIO_PIN);
 	gpio_output_options_set(FPGA_MISO_GPIO_PORT, GPIO_OTYPE_PP, GPIO_OSPEED_50MHZ, FPGA_MISO_GPIO_PIN);
-	gpio_af_set(FPGA_SCK_GPIO_PORT, GPIO_AF_0, FPGA_SCK_GPIO_PIN); 
-	gpio_af_set(FPGA_MISO_GPIO_PORT, GPIO_AF_0, FPGA_MISO_GPIO_PIN); 
+	gpio_af_set(FPGA_SCK_GPIO_PORT, GPIO_AF_0, FPGA_SCK_GPIO_PIN);
+	gpio_af_set(FPGA_MISO_GPIO_PORT, GPIO_AF_0, FPGA_MISO_GPIO_PIN);
 	gpio_af_set(FPGA_MOSI_GPIO_PORT, GPIO_AF_0, FPGA_MOSI_GPIO_PIN);
 	gpio_mode_set(FPGA_SCK_GPIO_PORT, GPIO_MODE_AF, GPIO_PUPD_PULLUP, FPGA_SCK_GPIO_PIN);
 	gpio_mode_set(FPGA_MISO_GPIO_PORT, GPIO_MODE_AF, GPIO_PUPD_PULLUP, FPGA_MISO_GPIO_PIN);
@@ -84,9 +87,9 @@ uint32_t fpga_reset()
 	gpio_bit_set(FPGA_PWR_EN_PORT, FPGA_PWR_EN_PIN);
 	delay_ms(50);
 	if (!gpio_input_bit_get(FPGA_STATUS_PORT, FPGA_STATUS_PIN))
-		return 0xBAD00004;
+		return ERR_FPGA_STATUS_FAIL;
 
-	return 0x900D0000;
+	return OK_FPGA_RESET;
 }
 
 void fpga_power_off()
@@ -143,7 +146,7 @@ void transfer_spi0_24_word(uint8_t subcmd, uint16_t value)
 	gpioa_set_pin4();
 }
 
-int transfer_spi0_26_byte(uint8_t subcmd)
+uint8_t transfer_spi0_26_byte(uint8_t subcmd)
 {
 	uint8_t buf[3];
 	buf[0] = 0x26;
@@ -159,9 +162,9 @@ void transfer_spi0_24_6(uint8_t value)
 	transfer_spi0_24_byte(0x6, value);
 }
 
-void fpga_select_active_buffer(uint8_t value)
+void fpga_select_active_buffer(enum FPGA_BUFFER buffer)
 {
-	transfer_spi0_24_byte(0x5, value);
+	transfer_spi0_24_byte(0x5, buffer);
 }
 
 void fpga_reset_device(int do_clock_stuck_glitch)
@@ -184,31 +187,33 @@ void fpga_glitch_device(glitch_cfg_t *cfg)
 	transfer_spi0_24_6(0);
 	transfer_spi0_24_word(0x1, cfg->offset);
 	transfer_spi0_24_byte(0x2, cfg->width);
-	transfer_spi0_24_byte(0x3, 120);
-	transfer_spi0_24_byte(0x8, cfg->rng);
+	transfer_spi0_24_byte(0x3, cfg->timeout);
+	transfer_spi0_24_byte(0x8, cfg->subcycle_delay);
 	transfer_spi0_24_6(0x80);
 	delay_ms(1u);
 	transfer_spi0_24_6(0x10);
 }
 
-uint32_t fpga_read_glitch_flags()
+uint8_t fpga_read_glitch_flags()
 {
 	return transfer_spi0_26_byte(0xA);
 }
 
-uint32_t fpga_read_mmc_flags()
+uint8_t fpga_read_mmc_flags()
 {
 	return transfer_spi0_26_byte(0xB);
 }
 
-uint32_t fpga_read_magic()
+uint32_t fpga_read_type()
 {
 	uint8_t buf[5];
 	buf[0] = 0xEE;
 	gpioa_clear_pin4();
 	spi0_spi_transfer_buffer(buf, sizeof(buf));
 	gpioa_set_pin4();
-	return *(uint32_t *)(buf + 1);
+	uint32_t res;
+	memcpy(&res, buf + 1, sizeof(uint32_t));
+	return res;
 }
 
 void fpga_do_mmc_command()
@@ -245,7 +250,7 @@ void fpga_enter_cmd_mode()
 
 void fpga_pre_recv()
 {
-	while (!(fpga_read_mmc_flags() & 0x10));
+	while (!(fpga_read_mmc_flags() & FPGA_MMC_BUSY_LOADER_DATA_RCVD));
 }
 
 void fpga_post_recv()

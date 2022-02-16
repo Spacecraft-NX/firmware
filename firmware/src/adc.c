@@ -18,6 +18,7 @@
 #include <adc.h>
 #include <fpga.h>
 #include <delay.h>
+#include <statuscode.h>
 
 void adc_init(uint32_t gpio_periph, uint32_t pin, uint8_t channel)
 {
@@ -54,24 +55,24 @@ int init_device_specific_adc(enum DEVICE_TYPE dt, struct adc_param *pap)
 	{
 		adc_init(GPIOB, GPIO_PIN_0, 8);
 		pap->poweron_threshold = 1200;
-		pap->glitch_power_threshold = 1376;
+		pap->glitch_threshold = 1376;
 		return 0;
 	}
 	if (dt == DEVICE_TYPE_MARIKO)
 	{
 		adc_init(GPIOB, GPIO_PIN_1, 9);
 		pap->poweron_threshold = 1024;
-		pap->glitch_power_threshold = 1296;
+		pap->glitch_threshold = 1296;
 		return 0;
 	}
 	if (dt == DEVICE_TYPE_LITE)
 	{
 		adc_init(GPIOA, GPIO_PIN_2, 2);
 		pap->poweron_threshold = 1024;
-		pap->glitch_power_threshold = 1296;
+		pap->glitch_threshold = 1270;
 		return 0;
 	}
-	return 0xBAD00107;
+	return ERR_UNKNOWN_DEVICE;
 }
 
 int adc_wait_for_min_value(logger *lgr, unsigned int min_adc_value, uint16_t *adc_read_out)
@@ -95,9 +96,9 @@ int adc_wait_for_min_value(logger *lgr, unsigned int min_adc_value, uint16_t *ad
 		if (retry == 2000)
 		{
 			lgr->adc(adc_read | 0x20000000);
-			return 0xBAD00122;
+			return ERR_ADC_WAIT_TIMEOUT;
 		}
-		if ((retry << 26) == 0)
+		if ((retry % 64) == 0)
 			lgr->adc(adc_read);
 	}
 }

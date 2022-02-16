@@ -19,8 +19,9 @@
 
 #include <stdint.h>
 #include <fpga.h>
+#include <statuscode.h>
 
-#define CONFIG_MAGIC 0x01584E53
+#define CONFIG_MAGIC 0x01584E54
 
 typedef struct
 {
@@ -29,7 +30,7 @@ typedef struct
 	uint32_t success;
 } timing_t;
 
-typedef struct 
+typedef struct
 {
 	uint32_t magic;
 	uint32_t count;
@@ -38,9 +39,9 @@ typedef struct
 } config_t;
 
 void config_clear(config_t *cfg);
-uint32_t config_load(config_t *cfg);
-uint32_t config_add_new(config_t *cfg, glitch_cfg_t *new_cfg);
-uint32_t config_save(config_t *cfg);
-uint32_t config_reset();
+enum STATUSCODE config_load(config_t *cfg);
+enum STATUSCODE config_add_new(config_t *cfg, glitch_cfg_t *new_cfg);
+enum STATUSCODE config_save(config_t *cfg);
+enum STATUSCODE config_reset();
 
 #endif

@@ -2,29 +2,31 @@
 #include <config.h>
 #include <leds.h>
 #include <sdio.h>
+#include <statuscode.h>
 
 void jump_bootloader_sdio_handler();
 extern int firmware_version;
 
 void sdio_handler()
 {
+	leds_set_pattern_delayed(&lp_toolbox, 3000);
+
 	while (1)
 	{
 		fpga_pre_recv();
 
 		uint8_t buffer[512];
-		fpga_select_active_buffer(1);
+		fpga_select_active_buffer(FPGA_BUFFER_CMD_DATA);
 		fpga_read_buffer(buffer, sizeof(buffer));
 		fpga_post_recv();
 
 		sdio_req_t *req = (sdio_req_t*)buffer;
-
 		switch (req->cmd)
 		{
 			case FW_ENTER_DFU:
 			{
 				config_t cfg;
-				if (config_load(&cfg) == 0x900D0007)
+				if (config_load(&cfg) == OK_CONFIG)
 				{
 					cfg.reflash = 1;
 					config_save(&cfg);
@@ -39,7 +41,7 @@ void sdio_handler()
 				resp->cmd = (uint8_t)~FW_GET_VER;
 				resp->fw_info = firmware_version;
 
-				fpga_select_active_buffer(1);
+				fpga_select_active_buffer(FPGA_BUFFER_CMD_DATA);
 				fpga_write_buffer(buffer, sizeof(buffer));
 				fpga_post_send();
 				break;
@@ -56,7 +58,7 @@ void sdio_handler()
 				resp->train_data.load_result = config_load(&cfg);
 				resp->train_data.cfg = cfg;
 
-				fpga_select_active_buffer(1);
+				fpga_select_active_buffer(FPGA_BUFFER_CMD_DATA);
 				fpga_write_buffer(buffer, sizeof(buffer));
 				fpga_post_send();
 				break;
@@ -76,7 +78,7 @@ void sdio_handler()
 				else
 					resp->train_data_ack = 0xBAD00001;
 
-				fpga_select_active_buffer(1);
+				fpga_select_active_buffer(FPGA_BUFFER_CMD_DATA);
 				fpga_write_buffer(buffer, sizeof(buffer));
 				fpga_post_send();
 				break;
@@ -90,13 +92,14 @@ void sdio_handler()
 				if (req->train_data.magic == TRAIN_DATA_RESET_MAGIC)
 				{
 					config_reset();
-					leds_set_color(0x00003f); // blue
+					leds_set_pattern(&lp_config_reset);
+					leds_set_pattern_delayed(&lp_toolbox, 2000);
 					resp->train_data_ack = 0xA11600D;
 				}
 				else
 					resp->train_data_ack = 0xBAD00001;
 
-				fpga_select_active_buffer(1);
+				fpga_select_active_buffer(FPGA_BUFFER_CMD_DATA);
 				fpga_write_buffer(buffer, sizeof(buffer));
 				fpga_post_send();
 				break;
@@ -108,9 +111,9 @@ void sdio_handler()
 				resp->cmd = (uint8_t)~FW_SESSION_INFO;
 				resp->session_info.format = SESSION_INFO_FORMAT_VER;
 				resp->session_info.magic = SESSION_INFO_MAGIC;
-				resp->session_info.data = session_info;
+				resp->session_info.data = g_session_info;
 
-				fpga_select_active_buffer(1);
+				fpga_select_active_buffer(FPGA_BUFFER_CMD_DATA);
 				fpga_write_buffer(buffer, sizeof(buffer));
 				fpga_post_send();
 				break;
@@ -123,15 +126,12 @@ void sdio_handler()
 				{
 					buffer[0] = (uint8_t)~buffer[0];
 					*(uint32_t *)&buffer[1] = 0x50000000; // ERROR_UNIMPLEMENTED
-					fpga_select_active_buffer(1);
+					fpga_select_active_buffer(FPGA_BUFFER_CMD_DATA);
 					fpga_write_buffer(buffer, sizeof(buffer));
 					fpga_post_send();
 				}
 				break;
 			}
-
-			default:
-				break;
-			}
+		}
 	}
 }

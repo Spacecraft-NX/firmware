@@ -16,6 +16,7 @@
 
 #include <gd32f3x0.h>
 #include <config.h>
+#include <statuscode.h>
 #include <string.h>
 
 void config_clear(config_t *cfg)
@@ -25,13 +26,13 @@ void config_clear(config_t *cfg)
 	cfg->count = 0;
 }
 
-uint32_t config_load(config_t *cfg)
+enum STATUSCODE config_load(config_t *cfg)
 {
 	memcpy(cfg, (const void *)0x801FC00, sizeof(config_t));
 	if (cfg->magic != CONFIG_MAGIC)
 	{
 		config_clear(cfg);
-		return 0xBAD0010B;
+		return ERR_CONFIG_MAGIC_MISMATCH;
 	}
 
 	int i = 0;
@@ -44,30 +45,30 @@ uint32_t config_load(config_t *cfg)
 	}
 	cfg->count = i;
 
-	return 0x900D0007;
+	return OK_CONFIG;
 }
 
-uint32_t config_add_new(config_t *cfg, glitch_cfg_t *new_cfg)
+enum STATUSCODE config_add_new(config_t *cfg, glitch_cfg_t *new_cfg)
 {
 	for (int i = 0; i < cfg->count; i++)
 	{
 		if (new_cfg->offset == cfg->timings[i].offset && new_cfg->width == cfg->timings[i].width)
 		{
 			cfg->timings[i].success++;
-			return 0x900D0007;
+			return OK_CONFIG;
 		}
 	}
 
 	unsigned int idx = cfg->count;
 	if (idx >= 32)
-		return 0xBAD00125;
+		return ERR_CONFIG_TABLE_FULL;
 
 	cfg->timings[idx].offset = new_cfg->offset;
 	cfg->timings[idx].width = new_cfg->width;
 	cfg->timings[idx].success = 1;
 	cfg->count++;
 
-	return 0x900D0007;
+	return OK_CONFIG;
 }
 
 char erase_flash(uint8_t *dest)
@@ -90,7 +91,7 @@ char burn_flash(uint8_t *dest, uint8_t *src, uint32_t len)
 {
 	fmc_unlock();
 	fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_WPERR | FMC_FLAG_PGERR);
-	
+
 	for (unsigned int i = 0; i < len; i += 4)
 	{
 		if (fmc_word_program((uint32_t) dest + i, *(uint32_t *)(src + i)))
@@ -100,16 +101,16 @@ char burn_flash(uint8_t *dest, uint8_t *src, uint32_t len)
 			return 0;
 		}
 	}
-	
+
 	fmc_flag_clear(FMC_FLAG_END | FMC_FLAG_WPERR | FMC_FLAG_PGERR);
 	fmc_lock();
 	return 1;
 }
 
-uint32_t config_save(config_t *cfg)
+enum STATUSCODE config_save(config_t *cfg)
 {
-	cfg->magic = 0x01584E53;
- 
+	cfg->magic = CONFIG_MAGIC;
+
 	for (int i = 0; i < cfg->count; i++)
 	{
 		for (int j = 0; j < cfg->count; j++)
@@ -124,18 +125,18 @@ uint32_t config_save(config_t *cfg)
 	}
 
 	if (!erase_flash((uint8_t *)0x801FC00))
-		return 0xBAD00109;
- 
+		return ERR_FLASH_ERASE_FAIL;
+
 	if (!burn_flash((uint8_t *) 0x801FC00, (uint8_t *) cfg, sizeof(config_t)))
-		return 0xBAD0010A;
- 
-	return 0x900D0007;
+		return ERR_FLASH_WRITE_FAIL;
+
+	return OK_CONFIG;
 }
 
-uint32_t config_reset()
+enum STATUSCODE config_reset()
 {
 	if (!erase_flash((void *)0x801FC00))
-		return 0xBAD00000;
+		return ERR_CONFIG_RESET_FAIL;
 
-	return 0x900D0002;
+	return OK_CONFIG_RESET;
 }

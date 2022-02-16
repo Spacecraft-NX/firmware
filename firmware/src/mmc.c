@@ -18,6 +18,7 @@
 #include <mmc.h>
 #include <fpga.h>
 #include <delay.h>
+#include <statuscode.h>
 #include "mmc_defs.h"
 #include "sd.h"
 
@@ -108,7 +109,7 @@ uint32_t mmc_initialize(uint8_t *cid)
 
 	uint32_t res;
 	if (mmc_send_command(MMC_GO_IDLE_STATE, 0, 0, 0))
-		return 0xBAD0010D;
+		return ERR_MMC_GO_IDLE_FAILED;
 
 	if (!mmc_send_command(MMC_SEND_OP_COND, 0, 0, 0))
 	{
@@ -120,13 +121,13 @@ uint32_t mmc_initialize(uint8_t *cid)
 
 			delay_ms(10);
 			if (!--retry)
-				return 0xBAD00110;
+				return ERR_MMC_SEND_OP_COND_FAILED;
 		}
 	}
 
 	uint32_t cid_res[4];
 	if (mmc_send_command(MMC_ALL_SEND_CID, 0, cid_res, 0))
-		return 0xBAD00111;
+		return ERR_MMC_SEND_CID_FAILED;
 
 	if (cid)
 	{
@@ -135,37 +136,37 @@ uint32_t mmc_initialize(uint8_t *cid)
 	}
 
 	if (mmc_send_command(MMC_SET_RELATIVE_ADDR, 2 << 16, &res, 0))
-		return 0xBAD00112;
+		return ERR_MMC_SET_RELATIVE_ADDR_FAILED;
 
 	if (R1_CURRENT_STATE(res) != R1_STATE_IDENT)
-		return 0xBAD00113;
+		return ERR_MMC_STATE_UNEXPECTED_NOT_IDENT;
 
 	if (mmc_send_command(MMC_SEND_CSD, 2 << 16, 0, 0))
-		return 0xBAD00114;
+		return ERR_MMC_SEND_CSD_FAILED;
 
 	if (mmc_send_command(MMC_SELECT_CARD, 2 << 16, &res, 0))
-		return 0xBAD00115;
+		return ERR_MMC_SELECT_CARD_FAILED;
 
 	if (R1_CURRENT_STATE(res) != (R1_STATE_IDENT | R1_STATE_READY))
-		return 0xBAD00116;
+		return ERR_MMC_STATE_NOT_IDENT_OR_READY;
 
 	if (mmc_send_command(MMC_SEND_STATUS, 2 << 16, &res, 0))
-		return 0xBAD00117;
+		return ERR_MMC_SEND_STATUS_FAILED;
 
 	if (R1_CURRENT_STATE(res) != R1_STATE_TRAN)
-		return 0xBAD00118;
+		return ERR_MMC_STATE_UNEXPECTED_NOT_TRAN1;
 
 	if (mmc_send_command(MMC_SET_BLOCKLEN, 512, &res, 0))
-		return 0xBAD00119;
+		return ERR_MMC_SET_BLOCKLEN_FAILED;
 
 	if (R1_CURRENT_STATE(res) != R1_STATE_TRAN)
-		return 0xBAD0011A;
+		return ERR_MMC_STATE_UNEXPECTED_NOT_TRAN2;
 
 	if (mmc_send_command(MMC_SWITCH, (MMC_SWITCH_MODE_WRITE_BYTE << 24) | (EXT_CSD_PART_CONFIG << 16) | (1 << 8), &res, 0))
-		return 0xBAD0011B;
+		return ERR_MMC_SWITCH_FAILED;
 
-	if (R1_CURRENT_STATE(res) !=R1_STATE_TRAN)
-		return 0xBAD0011C;
+	if (R1_CURRENT_STATE(res) != R1_STATE_TRAN)
+		return ERR_MMC_STATE_UNEXPECTED_NOT_TRAN3;
 
 	return 0;
 }
@@ -175,10 +176,10 @@ uint32_t mmc_read(uint32_t offset, uint8_t *block)
 	uint32_t res;
 	int ret = mmc_send_command(MMC_READ_SINGLE_BLOCK, offset, &res, block);
 	if (ret)
-		return 0xBAD0011D;
+		return ERR_MMC_READ_SINGLE_BLOCK_FAILED;
 
 	if (R1_CURRENT_STATE(res) != R1_STATE_TRAN)
-		return 0xBAD0011E;
+		return ERR_MMC_STATE_UNEXPECTED_NOT_TRAN4;
 
 	return 0;
 }
@@ -187,10 +188,10 @@ uint32_t mmc_write(uint32_t offset, const uint8_t *block)
 {
 	uint32_t res;
 	if (mmc_send_command(MMC_WRITE_BLOCK, offset, &res, (uint8_t *) block))
-		return 0xBAD00120;
+		return ERR_MMC_WRITE_SINGLE_BLOCK_FAILED;
 
 	if (R1_CURRENT_STATE(res) != R1_STATE_TRAN)
-		return 0xBAD00121;
+		return ERR_MMC_STATE_UNEXPECTED_NOT_TRAN5;
 
 	return 0;
 }
@@ -208,7 +209,7 @@ uint32_t mmc_check_and_if_different_write(uint32_t offset, const uint8_t *buffer
 			return status;
 		if (memcmp(tmp, &buffer[i * sizeof(tmp)], sizeof(tmp)))
 		{
-			uint32_t status = mmc_write(offset + i, &buffer[i * sizeof(tmp)]);
+			status = mmc_write(offset + i, &buffer[i * sizeof(tmp)]);
 			if (status)
 				return status;
 		}
@@ -238,7 +239,7 @@ uint32_t mmc_check_and_if_header_different_write_all(uint32_t offset, const uint
 				return status;
 			if (memcmp(tmp, &buffer[i * sizeof(tmp)], sizeof(tmp)))
 			{
-				uint32_t status = mmc_write(offset + i, &buffer[i * sizeof(tmp)]);
+				status = mmc_write(offset + i, &buffer[i * sizeof(tmp)]);
 				if (status)
 					return status;
 			}

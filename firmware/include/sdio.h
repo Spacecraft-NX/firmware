@@ -39,7 +39,7 @@ typedef struct
 		{
 			uint32_t magic : 24;
 			uint32_t format : 8;
-			session_info_t data;			
+			session_info_t data;
 		} session_info;
 		struct
 		{

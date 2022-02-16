@@ -17,6 +17,7 @@
 
 #include <gd32f3x0_it.h>
 #include <usbd_int.h>
+#include <leds.h>
 
 extern usb_core_handle_struct usbfs_core_dev;
 extern uint32_t usbfs_prescaler;
@@ -40,6 +41,7 @@ void NMI_Handler(void)
 void HardFault_Handler(void)
 {
 	/* if Hard Fault exception occurs, go to infinite loop */
+	leds_set_pattern(&lp_err_firmware);
 	while (1);
 }
 
@@ -76,6 +78,7 @@ void BusFault_Handler(void)
 void UsageFault_Handler(void)
 {
 	/* if Usage Fault exception occurs, go to infinite loop */
+	leds_set_pattern(&lp_err_firmware);
 	while (1);
 }
 

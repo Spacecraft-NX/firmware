@@ -26,18 +26,36 @@ void fpga_init();
 uint32_t fpga_reset();
 void fpga_power_off();
 
-void fpga_select_active_buffer(uint8_t value);
-void fpga_reset_device(int do_clock_stuck_glitch);
-typedef struct 
+enum FPGA_BUFFER
 {
-	uint32_t width;
-	uint32_t offset;
-	uint32_t rng;
+	FPGA_BUFFER_CMD = 0, // traffic on CMD line
+	FPGA_BUFFER_CMD_DATA = 1, // data from host-->device commands
+	FPGA_BUFFER_RESP_DATA = 2, // data from device-->host responses
+};
+
+void fpga_select_active_buffer(enum FPGA_BUFFER buffer);
+void fpga_reset_device(int do_clock_stuck_glitch);
+typedef struct
+{
+	uint16_t offset; // 12-bit counter marking number of eMMC clock cycles to wait after completed sector 0x13 READ_SINGLE_BLOCK command
+	uint8_t subcycle_delay; // 3-bit counter for number of additional pulses at 4x eMMC clock to delay after 'offset' above
+	uint8_t width; // glitch pulse width in clock cycles @ 48MHz starting after subcycle_delay.
+	uint8_t timeout; // delay as ~1.2ms*timeout value after which glitch_flag:timeout is set when no eMMC bus activity is detected
 } glitch_cfg_t;
 void fpga_glitch_device(glitch_cfg_t *cfg);
-uint32_t fpga_read_glitch_flags();
-uint32_t fpga_read_mmc_flags();
-uint32_t fpga_read_magic();
+uint8_t fpga_read_glitch_flags();
+
+#define FPGA_MMC_BUSY_SENDING           0x01
+#define FPGA_MMC_GLITCH_SUCCESS         0x02
+#define FPGA_MMC_GLITCH_TIMEOUT         0x04
+#define FPGA_MMC_BUSY_UNKNOWN1          0x08
+#define FPGA_MMC_BUSY_LOADER_DATA_RCVD  0x10
+#define FPGA_MMC_BUSY_UNKNOWN2          0x20
+#define FPGA_MMC_GLITCH_DT_CAPTURED     0x40
+#define FPGA_MMC_BUSY_UNKNOWN3          0x80
+uint8_t fpga_read_mmc_flags();
+
+uint32_t fpga_read_type();
 void fpga_do_mmc_command();
 
 void fpga_read_buffer(uint8_t *buffer, uint32_t size);

@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2020 Spacecraft-NX
+ * Copyright (c) 2022 HWFLY-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -16,119 +17,206 @@
 
 #include "mmc_defs.h"
 #include <adc.h>
-#include <board.h>
 #include <board_id.h>
-#include <clock.h>
 #include <config.h>
-#include <delay.h>
+#include <statuscode.h>
 #include <device.h>
 #include <fpga.h>
 #include <glitch.h>
+#include <glitch_heuristic.h>
 #include <leds.h>
-#include <mmc.h>
+#include <mmc_sniffer.h>
 #include <payload.h>
 #include <sdio.h>
 #include <string.h>
 #include <timer.h>
 
-typedef struct
-{
-	uint8_t *data;
-	uint32_t datalen;
-	uint8_t cmd;
-} mmc_sniff_parser_ctx;
+#define ASSERTZERO(cond) { int __test; do { __test = cond; if (__test) return __test; } while (0); }
+#define MAX_GLITCH_WIDTH 85
+#define MIN_GLITCH_WIDTH 15
+#define START_GLITCH_WIDTH ((MAX_GLITCH_WIDTH + MIN_GLITCH_WIDTH) / 2)
 
-void mmc_sniff_parser_init(mmc_sniff_parser_ctx *ctx, uint8_t *data, int datalen)
-{
-	ctx->data = data;
-	ctx->datalen = datalen;
-	ctx->cmd = 0;
-}
+enum STATUSCODE glitch_prepare(logger *lgr, session_info_t *session_info, unsigned int *adc_goal);
+enum STATUSCODE glitch_reuse_offsets(logger *lgr, session_info_t *session_info, unsigned int adc_goal);
+enum STATUSCODE glitch_search_new_offset(logger *lgr, session_info_t *session_info, unsigned int adc_goal);
 
-int mmc_sniff_parser_parse(mmc_sniff_parser_ctx *ctx)
-{
-	if (ctx->datalen <= 5)
-		return 3;
-
-	uint8_t *data = ctx->data;
-	char flags = data[0];
-
-	int ret = 0;
-	if (flags & 0x40)
-	{
-		ctx->cmd = flags & 0x3F;
-		ret = 0;
-	}
-	else
-	{
-		if (ctx->datalen <= 0x10)
-			return 3;
-
-		if (ctx->cmd == MMC_ALL_SEND_CID || ctx->cmd == MMC_SEND_CSD)
-		{
-			ctx->cmd = MMC_GO_IDLE_STATE;
-			ret = 2;
-		}
-		else
-		{
-			ctx->cmd = flags & 0x3F;
-			ret = 1;
-		}
-	}
-
-	if (ret == 2)
-	{
-		ctx->data += 0x11;
-		ctx->datalen -= 0x11;
-	}
-	else
-	{
-		ctx->data += 6;
-		ctx->datalen -= 6;
-	}
-
-	return ret;
-}
+enum GLITCH_RESULT_TYPE glitch_attempt(logger *lgr, session_info_t *session_info, glitch_cfg_t *glitch_cfg);
+enum STATUSCODE flash_payload_and_update_config(logger *lgr, session_info_t *session_info);
 
 int read_glitch_result(uint8_t *buf)
 {
-	if (fpga_read_mmc_flags() & 0x40)
+	if (fpga_read_mmc_flags() & FPGA_MMC_GLITCH_DT_CAPTURED)
 	{
-		fpga_select_active_buffer(0);
+		fpga_select_active_buffer(FPGA_BUFFER_CMD);
 		fpga_read_buffer(buf, 512);
 		int datalen = buf[0x10];
 
-		fpga_select_active_buffer(2);
+		fpga_select_active_buffer(FPGA_BUFFER_RESP_DATA);
 		fpga_read_buffer(buf, 512);
 		return datalen;
 	}
 	return 0;
 }
 
-uint16_t erista_offsets[] = { 825, 830, 835, 840, 845, 850, 855, 860, 865, 870, 875, 880, 885, 890, 895, 900, 905 };
-uint16_t mariko_offsets[] = { 800, 805, 810, 815, 820, 825, 830, 835, 840, 845, 850, 855, 860, 865, 870, 875, 880 };
-
-uint32_t rand_seed = 0;
-int rand()
+enum STATUSCODE glitch(logger *lgr, session_info_t *session_info, bool is_training)
 {
-	rand_seed = 1664525 * rand_seed + 1013904223;
-	return rand_seed;
-}
-
-int glitch(logger* lgr, session_info_t* session_info)
-{
+	lgr->start();
+	leds_set_pattern_delayed(is_training ? &lp_train_prepare : &lp_glitch_prepare, 300);
 	timer2_init();
 
-	config_t cfg;
-	int needs_reflash = config_load(&cfg) == 0xBAD0010B || cfg.reflash;
+	enum STATUSCODE result;
+	for (;;)
+	{
+		unsigned int adc_goal;
+		result = glitch_prepare(lgr, session_info, &adc_goal);
+		if (result != OK)
+			break;
 
-	enum DEVICE_TYPE device = detect_device_type();
+		session_info->power_threshold_reached_us = timer2_get_total();
+
+		// Check if payload must be flashed
+		config_t cfg;
+		bool flash_payload = config_load(&cfg) != OK_CONFIG || cfg.reflash;
+		if (flash_payload)
+		{
+			result = flash_payload_and_update_config(lgr, session_info);
+			if (result != OK_FLASH_SUCCESS)
+				break;
+		}
+
+		lgr->glitching_started();
+		leds_set_pattern(is_training ? &lp_train_glitching : &lp_glitch_glitching);
+		result = glitch_reuse_offsets(lgr, session_info, adc_goal);
+		if (result != OK_GLITCH_SUCCESS)
+			result = glitch_search_new_offset(lgr, session_info, adc_goal);
+
+		break;
+	}
+
+	lgr->end();
+
+	// Set LED to color indicative of glitch result
+	switch (result)
+	{
+		case OK_GLITCH_SUCCESS:
+			leds_set_pattern(&lp_glitch_done);
+			break;
+		case ERR_GLITCH_NO_EMMC_COMM:
+			leds_set_pattern(&lp_err_emmc);
+			break;
+		case ERR_ADC_WAIT_TIMEOUT:
+		case ERR_UNKNOWN_DEVICE:
+			leds_set_pattern(&lp_err_adc);
+			break;
+		default:
+			leds_set_pattern(&lp_err_unknown);
+			break;
+	}
+
+	return result;
+}
+
+enum STATUSCODE glitch_prepare(logger *lgr, session_info_t *session_info, unsigned int *adc_goal)
+{
+	session_info->device_type = detect_device_type();
+	session_info->board_id = board_id_get();
+	session_info->fpga_type = fpga_read_type();
+
+	lgr->device_type(session_info->device_type);
 	struct adc_param adc_min_values = {0};
-	int ret = init_device_specific_adc(device, &adc_min_values);
+	ASSERTZERO(init_device_specific_adc(session_info->device_type, &adc_min_values));
 
-	uint16_t *offsets;
+	// Wait until console reaches state where we can begin to attempt glitching
+	*adc_goal = 0;
+	session_info->was_the_device_reset = 0;
+	int ret;
+	do
+	{
+		uint16_t adc_read;
+		ret = adc_wait_for_min_value(lgr, adc_min_values.glitch_threshold, &adc_read);
+
+		if (adc_read >= adc_min_values.glitch_threshold)
+		{
+			*adc_goal = adc_min_values.glitch_threshold;
+			return 0;
+		}
+		else if (adc_read >= adc_min_values.poweron_threshold)
+		{
+			*adc_goal = adc_min_values.poweron_threshold;
+			return 0;
+		}
+
+		// Reset to retry. Perform longer reset every 2nd try.
+		fpga_reset_device(session_info->was_the_device_reset & 1);
+		session_info->was_the_device_reset++;
+	} while (!ret || session_info->was_the_device_reset < 5);
+
+	return ret;
+}
+
+enum STATUSCODE glitch_reuse_offsets(logger *lgr, session_info_t *session_info, unsigned int adc_goal)
+{
+	config_t cfg;
+	config_load(&cfg);
+	bool fatal_abort = false;
+	session_info->glitch_attempt = 0;
+
+	// Loop through known glitch configs that worked in the past
+	for (int i = 0; i < cfg.count && !fatal_abort; ++i)
+	{
+		// Load stored config
+		glitch_cfg_t glitch_cfg;
+		glitch_cfg.offset = cfg.timings[i].offset;
+		glitch_cfg.width = cfg.timings[i].width;
+		glitch_cfg.subcycle_delay = 0;
+		glitch_cfg.timeout = 50;
+
+		// Allow each config to be rejected by the heuristic 4x before moving on
+		const unsigned int retries_per_config = 4;
+		for (int j = 0; !fatal_abort && j < retries_per_config; ++j)
+		{
+			// Initialize heuristic which will inform how to adjust pulse width
+			// and when to move on to next offset.
+			glitch_heuristic_t heuristic = {0};
+			bool next_offset = false;
+			do
+			{
+				// Wait until device is ready to be glitched, reset if necessary.
+				if (adc_wait_eoc_read() < adc_goal)
+				{
+					ASSERTZERO(adc_wait_for_min_value(lgr, adc_goal, 0));
+					session_info->adc_goal_reached_us = timer2_get_total();
+				}
+
+				// Perform glitch attempt and add result to heuristic
+				enum GLITCH_RESULT_TYPE res = glitch_attempt(lgr, session_info, &glitch_cfg);
+				if (res == GLITCH_RESULT_SUCCESS)
+					return OK_GLITCH_SUCCESS;
+
+				heuristic_add_result(&heuristic, res);
+
+				// Query heuristic for advice on how to continue
+				int width_adjust, offset_adjust;
+				heuristic_advice(&heuristic, &fatal_abort, &next_offset, &width_adjust, &offset_adjust);
+				glitch_cfg.width += width_adjust;
+				glitch_cfg.offset += offset_adjust;
+				glitch_cfg.subcycle_delay = (glitch_cfg.subcycle_delay + 1) & 3;
+			} while (!fatal_abort && !next_offset);
+		}
+	}
+
+	// Exhausted options
+	return ERR_GLITCH_TOO_MANY_ATTEMPTS;
+}
+
+enum STATUSCODE glitch_search_new_offset(logger *lgr, session_info_t *session_info, unsigned int adc_goal)
+{
+	const uint16_t erista_offsets[] = {825, 830, 835, 840, 845, 850, 855, 860, 865, 870, 875, 880, 885, 890, 895, 900, 905};
+	const uint16_t mariko_offsets[] = {800, 805, 810, 815, 820, 825, 830, 835, 840, 845, 850, 855, 860, 865, 870, 875, 880};
+
+	const uint16_t *offsets;
 	unsigned int offsets_count;
-	if (device == DEVICE_TYPE_ERISTA)
+	if (session_info->device_type == DEVICE_TYPE_ERISTA)
 	{
 		offsets = erista_offsets;
 		offsets_count = sizeof(erista_offsets) / sizeof(erista_offsets[0]);
@@ -139,298 +227,182 @@ int glitch(logger* lgr, session_info_t* session_info)
 		offsets_count = sizeof(mariko_offsets) / sizeof(mariko_offsets[0]);
 	}
 
-	lgr->start();
-	lgr->device_type(device);
-	leds_set_pulsing(1);
-
-	unsigned int max_packet_res_1_count;
-	if (device == DEVICE_TYPE_ERISTA)
-		max_packet_res_1_count = 3;
-	else
-		max_packet_res_1_count = 5;
-
-	uint16_t adc_goal = 0;
-	if (!ret)
-	{
-		session_info->was_the_device_reset = 0;
-		while (1)
-		{
-			uint16_t adc_read;
-			ret = adc_wait_for_min_value(lgr, adc_min_values.glitch_power_threshold, &adc_read);
-			if (adc_read >= adc_min_values.glitch_power_threshold)
-			{
-				adc_goal = adc_min_values.glitch_power_threshold;
-				break;
-			}
-			if (adc_read >= adc_min_values.poweron_threshold)
-			{
-				adc_goal = adc_min_values.poweron_threshold;
-				ret = 0;
-				break;
-			}
-			if (session_info->was_the_device_reset && ret)
-			{
-				break;
-			}
-			if (!session_info->was_the_device_reset)
-			{
-				fpga_reset_device(0);
-				session_info->was_the_device_reset = 1;
-			}
-		}
-	}
-	
-	session_info->power_threshold_reached_us = timer2_get_total();
-
+	int offset_idx = offsets_count / 2; // Start in the center of window; this helps converging to good pulse width quickly.
 	glitch_cfg_t glitch_cfg;
-	glitch_cfg.rng = 11;
-	if (device == DEVICE_TYPE_ERISTA)
-	{
-		glitch_cfg.width = 35;
-		glitch_cfg.offset = 850;
-	}
-	else
-	{
-		glitch_cfg.width = 65;
-		glitch_cfg.offset = 850;
-	}
+	glitch_cfg.width = START_GLITCH_WIDTH;
+	glitch_cfg.subcycle_delay = 0;
+	glitch_cfg.timeout = 50;
 
-	unsigned int saved_idx = 0;
+	bool fatal_abort = false;
+	bool reflash = false;
 
-	char packages[128];
-	memset(packages, 0, sizeof(packages));
-	session_info->glitch_attempt = 0;
-	int cycle = 0;
-	if (!ret)
+	const unsigned int max_glitch_attempts = 1200;
+	for (session_info->glitch_attempt = 0;
+		 !fatal_abort && session_info->glitch_attempt <= max_glitch_attempts;
+		 ++session_info->glitch_attempt)
 	{
-		lgr->glitching_started();
-		int offset_idx = 0;
-		int package_index = 0;
-		while (!ret)
+		glitch_cfg.offset = offsets[offset_idx];
+
+		// Poor heuristic to determine whether to reflash payload to BOOT0..
+		reflash |= session_info->glitch_attempt > 0 && (session_info->glitch_attempt % 400) == 0;
+		if (reflash)
 		{
-			if (++session_info->glitch_attempt >= 1200)
-			{
-				ret = 0xBAD00124;
-				break;
-			}
+			enum STATUSCODE flash_result = flash_payload_and_update_config(lgr, session_info);
+			if (flash_result != OK_FLASH_SUCCESS)
+				return flash_result;
+			// re-center width
+			glitch_cfg.width = START_GLITCH_WIDTH;
+		}
 
-			if (session_info->glitch_attempt > 0 && (session_info->glitch_attempt % 400) == 0)
-			{
-				saved_idx = cfg.count;
-				needs_reflash = 1;
-			}
-
+		// Initialize heuristic which will inform how to adjust pulse width
+		// and when to move on to next offset.
+		glitch_heuristic_t heuristic = {0};
+		bool next_offset = false;
+		do
+		{
+			// Wait until device is ready to be glitched, reset if necessary.
 			if (adc_wait_eoc_read() < adc_goal)
 			{
-				ret = device == DEVICE_TYPE_LITE
-					? adc_wait_for_min_value(lgr, adc_goal - 100, 0)
-					: adc_wait_for_min_value(lgr, adc_goal, 0);
-				if (ret)
-					break;
+				ASSERTZERO(adc_wait_for_min_value(lgr, session_info->device_type == DEVICE_TYPE_LITE ? adc_goal : adc_goal - 100, 0));
 				session_info->adc_goal_reached_us = timer2_get_total();
 			}
 
-			if (!rand_seed)
-				rand_seed = SysTick->VAL;
+			// Perform glitch attempt and add result to heuristic
+			enum GLITCH_RESULT_TYPE res = glitch_attempt(lgr, session_info, &glitch_cfg);
+			if (res == GLITCH_RESULT_SUCCESS)
+				return OK_GLITCH_SUCCESS;
 
-			if (needs_reflash)
+			heuristic_add_result(&heuristic, res);
+
+			// Query heuristic for advice on how to continue
+			int width_adjust, offset_adjust;
+			heuristic_advice(&heuristic, &fatal_abort, &next_offset, &width_adjust, &offset_adjust);
+			glitch_cfg.width += width_adjust;
+			glitch_cfg.offset += offset_adjust;
+			glitch_cfg.subcycle_delay = (glitch_cfg.subcycle_delay + 1) & 3;
+
+			if (glitch_cfg.width > MAX_GLITCH_WIDTH || glitch_cfg.width < MIN_GLITCH_WIDTH)
 			{
-				needs_reflash = 0;
-				if (cfg.reflash)
-				{
-					cfg.reflash = 0;
-					config_save(&cfg);
-				}
-
-				if (!session_info->payload_flashed && !fpga_sync_failed)
-				{
-					uint8_t cid[16];
-					ret = flash_payload(cid, device);
-					lgr->payload_flash_res_and_cid(ret, cid);
-					if (ret != 0x900D0008)
-						break;
-					session_info->payload_flashed = 1;
-				}
-				glitch_cfg.width = 70;
+				// Reflash; also recenters width
+				reflash = true;
+				break;
 			}
-			if (saved_idx >= cfg.count)
-			{
-				// Exhausted all previously successful configurations. Find a new one at next offset table entry.
-				if (++offset_idx >= offsets_count)
-					offset_idx = 0;
-				glitch_cfg.offset = offsets[offset_idx];
-				glitch_cfg.rng = rand() & 3;
-			}
-			else if (glitch_cfg.rng == 11)
-			{
-				glitch_cfg.width = cfg.timings[saved_idx].width;
-				glitch_cfg.offset = cfg.timings[saved_idx].offset;
-				glitch_cfg.rng = 0;
+		} while (!fatal_abort && !next_offset);
 
-				switch (cycle)
-				{
-				case 0:
-					cycle = 1;
-					break;
-				case 1:
-					glitch_cfg.offset++;
-					cycle = 2;
-					break;
-				default:
-					glitch_cfg.offset--;
-					cycle = 0;
-					saved_idx++;
-					break;
-				}
-			}
-			else
-			{
-				glitch_cfg.rng++;
-			}
-			if (glitch_cfg.width > 70)
-			{
-				glitch_cfg.width = 70;
-				saved_idx = cfg.count;
-				needs_reflash = 1;
-			}
-			else if (glitch_cfg.width <= 15)
-			{
-				glitch_cfg.width = 15;
-				saved_idx = cfg.count;
-				needs_reflash = 1;
-			}
-			fpga_glitch_device(&glitch_cfg);
+		offset_idx = (offset_idx + 1) % offsets_count;
 
-			uint32_t mmc_flags;
-			uint32_t glitch_flags;
-			do
+	} // for
+
+	return ERR_GLITCH_TOO_MANY_ATTEMPTS;
+}
+
+enum GLITCH_RESULT_TYPE glitch_attempt(logger *lgr, session_info_t *session_info, glitch_cfg_t *glitch_cfg)
+{
+	// Attempt single glitch attempt with given parameters
+	// and categorize outcome using eMMC bus monitoring.
+	session_info->glitch_attempt++;
+	fpga_glitch_device(glitch_cfg);
+	uint8_t mmc_flags;
+	uint8_t glitch_flags;
+	do
+	{
+		mmc_flags = fpga_read_mmc_flags();
+		glitch_flags = fpga_read_glitch_flags();
+	} while (!(mmc_flags & (FPGA_MMC_GLITCH_SUCCESS | FPGA_MMC_GLITCH_TIMEOUT)));
+
+	uint8_t data[512];
+	int datalen = read_glitch_result(data);
+
+	if (mmc_flags & FPGA_MMC_GLITCH_SUCCESS)
+	{
+		// Success bit set. Skip eMMC traffic analysis.
+		session_info->glitch_complete_us = timer2_get_total();
+		lgr->glitch_result(glitch_cfg, GLITCH_RESULT_SUCCESS, mmc_flags, datalen, data, glitch_flags);
+
+		// Confirm glitch success by awaiting command over eMMC bus.
+		// This detects false-positives.
+		fpga_enter_cmd_mode();
+		unsigned int max_flag_reads = 200000; // takes about 1s
+		unsigned int flag_reads;
+		for (flag_reads = 0; flag_reads < max_flag_reads; flag_reads++)
+		{
+			if (fpga_read_mmc_flags() & FPGA_MMC_BUSY_LOADER_DATA_RCVD)
 			{
-				mmc_flags = fpga_read_mmc_flags();
-				glitch_flags = fpga_read_glitch_flags();
-			} while ((mmc_flags & 6) == 0);
-			int success = mmc_flags & 0x02;
-			session_info->glitch_complete_us = timer2_get_total();
-
-			uint8_t data[512];
-			int datalen = read_glitch_result(data);
-			int packet_res;
-			if (datalen >= 5)
-				packet_res = 1;
-			else
-				packet_res = 3;
-
-			mmc_sniff_parser_ctx ctx;
-			mmc_sniff_parser_init(&ctx, data, datalen);
-			while (1)
-			{
-				int parser_ret = mmc_sniff_parser_parse(&ctx);
-				if (parser_ret == 3) // too less data
-					break;
-				if (!parser_ret && (ctx.cmd == MMC_READ_SINGLE_BLOCK || ctx.cmd == MMC_GO_IDLE_STATE))
-					packet_res = 2;
-			}
-
-			lgr->_2_and_3(&glitch_cfg, mmc_flags, datalen, data, glitch_flags);
-			packages[package_index] = packet_res;
-			package_index = (package_index + 1) & 7;
-			int too_short_count = 0;
-			int all_package_count = 0;
-			int packet_res_1_count = 0;
-			int packet_res_2_count = 0;
-			for (int j = 0; j < 8; ++j)
-			{
-				int c = packages[j];
-				if (c)
-				{
-					++all_package_count;
-					switch (c)
-					{
-					case 1:
-						++packet_res_1_count;
-						break;
-					case 2:
-						++packet_res_2_count;
-						break;
-					case 3:
-						++too_short_count;
-						break;
-					}
-				}
-			}
-			if (all_package_count == 8)
-			{
-				if (too_short_count == 8)
-				{
-					memset(packages, 0, sizeof(packages));
-					ret = 0xBAD00108;
-					break;
-				}
-				if (max_packet_res_1_count > packet_res_1_count)
-				{
-					if (packet_res_2_count > 4)
-					{
-						glitch_cfg.width++;
-						memset(packages, 0, sizeof(packages));
-					}
-				}
-				else
-				{
-					glitch_cfg.width--;
-					memset(packages, 0, sizeof(packages));
-				}
-			}
-
-			if (success)
-			{
-				// Confirm glitch success by awaiting command over eMMC bus.
-				// This detects false-positives.
-				fpga_enter_cmd_mode();
-				unsigned int max_flag_reads = 200000; // allow up to 1s for emmc init + response
-				int flag_reads;
-				for (flag_reads = 0; flag_reads < max_flag_reads; flag_reads++)
-				{
-					if (fpga_read_mmc_flags() & 0x10)
-						break;
-				}
-
-				if (flag_reads > 0)
-				{
-					session_info->glitch_confirm_us = timer2_get_total();
-					session_info->flag_reads_before_glitch_confirmed = flag_reads;
-					session_info->total_time_us = timer_get_global_total();
-					session_info->glitch_cfg = glitch_cfg;
-
-					if (config_add_new(&cfg, &glitch_cfg) == 0x900D0007)
-					{
-						lgr->new_config_and_save(&glitch_cfg, config_save(&cfg));
-					}
-
-					ret = 0x900D0006;
-					break; // glitch confirmed, don't retry
-				}
+				// read buffer so flags get cleared
+				fpga_select_active_buffer(FPGA_BUFFER_CMD_DATA);
+				data[0] = 0;
+				fpga_read_buffer(data, 512);
+				fpga_post_recv();
+				break;
 			}
 		}
-	}
-	lgr->end();
-	leds_set_pulsing(0);
 
-	delay_ms(10);
-	unsigned int color;
-	switch (ret)
-	{
-		case 0x900D0006:
-			color = 0x003F00;	// green
-			break;
-		case 0xBAD00108:
-			color = 0x3F3F3F;	// white
-			break;
-		case 0xBAD00122:
-			color = 0x3F003F;	// magenta
-			break;
-		default:
-			color = 0x3F0000;	// red
-			break;
+		if (flag_reads > 0)
+		{
+			session_info->glitch_confirm_us = timer2_get_total();
+			session_info->flag_reads_before_glitch_confirmed = flag_reads;
+			session_info->total_time_us = timer_get_global_total();
+			session_info->glitch_cfg = *glitch_cfg;
+
+			// Update config in flash
+			config_t cfg;
+			config_load(&cfg);
+			if (config_add_new(&cfg, glitch_cfg) == 0x900D0007)
+			{
+				lgr->new_config_and_save(glitch_cfg, config_save(&cfg));
+			}
+			return GLITCH_RESULT_SUCCESS;
+		}
+		else
+		{
+			led_pattern_t blink_yellow = {blink, 0xC0, 0xFF, 0x00};
+			leds_override(500, &blink_yellow);
+			return GLITCH_RESULT_FAIL_TIMEOUT;
+		}
 	}
-	leds_set_color(color);
-	return ret;
+	else
+	{
+		// Analyse eMMC bus traffic to categorize glitch attempt result
+		mmc_sniff_parser_ctx ctx;
+		mmc_sniff_parser_init(&ctx, data, datalen);
+		enum GLITCH_RESULT_TYPE glitch_res = (datalen >= 5) ? GLITCH_RESULT_FAIL_TIMEOUT : GLITCH_RESULT_FAIL_NO_EMMC_COMMS;
+		enum MMC_SNIFFER_PACKET_TYPE sniffer_result;
+		do
+		{
+			sniffer_result = mmc_sniff_parser_parse(&ctx);
+			if (sniffer_result == MMC_SNIFF_PKT_TYPE_COMMAND && (ctx.cmd == MMC_READ_SINGLE_BLOCK || ctx.cmd == MMC_GO_IDLE_STATE))
+				glitch_res = GLITCH_RESULT_FAILED_MMC;
+		} while (sniffer_result != MMC_SNIFF_PKT_TYPE_INVALID);
+
+		lgr->glitch_result(glitch_cfg, glitch_res, mmc_flags, datalen, data, glitch_flags);
+		return glitch_res;
+	}
+}
+
+enum STATUSCODE flash_payload_and_update_config(logger *lgr, session_info_t *session_info)
+{
+	// Prevent doing this (successfully) multiple times per session.
+	if (!session_info->payload_flashed)
+	{
+		// Clear flag from config if it was set
+		config_t cfg;
+		config_load(&cfg);
+		if (cfg.reflash)
+		{
+			cfg.reflash = 0;
+			config_save(&cfg);
+		}
+
+		led_pattern_t prev = leds_get_pattern();
+		uint8_t cid[16];
+		enum STATUSCODE result = flash_payload(cid, session_info->device_type);
+		lgr->payload_flash_res_and_cid(result, cid);
+
+		if (result == OK_FLASH_SUCCESS)
+			session_info->payload_flashed = 1;
+
+		leds_set_pattern(&prev);
+		return result;
+	}
+	return OK_FLASH_SUCCESS; // skipped since we've been successful before
 }
