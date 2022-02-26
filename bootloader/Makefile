@@ -20,7 +20,7 @@ TARGET		:=	$(notdir $(CURDIR))
 BUILD		:=	build
 SOURCES		:=	src
 DATA		:=	data
-INCLUDES	:=	include ../libs/CMSIS/include ../libs/GD32F3x0_standard_peripheral/include ../libs/GD32F3x0_usbfs_driver/include ../libs/bootloader_interface/include
+INCLUDES	:=	include ../firmware/include ../libs/CMSIS/include ../libs/GD32F3x0_standard_peripheral/include ../libs/GD32F3x0_usbfs_driver/include ../libs/bootloader_interface/include
 
 #---------------------------------------------------------------------------------
 # options for code generation
@@ -67,10 +67,13 @@ export TOPDIR	:=	$(CURDIR)
 
 export VPATH	:=	$(foreach dir,$(SOURCES),$(CURDIR)/$(dir)) \
 			$(foreach dir,$(DATA),$(CURDIR)/$(dir))
+VPATH		+=	$(TOPDIR)/../firmware/src/
 
 export DEPSDIR	:=	$(CURDIR)/$(BUILD)
 
 CFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.c)))
+CFILES		+=	fpga.c leds.c delay.c
+
 CPPFILES	:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.cpp)))
 SFILES		:=	$(foreach dir,$(SOURCES),$(notdir $(wildcard $(dir)/*.s)))
 BINFILES	:=	$(foreach dir,$(DATA),$(notdir $(wildcard $(dir)/*.*)))
