@@ -250,8 +250,6 @@ enum STATUSCODE glitch_search_new_offset(logger *lgr, session_info_t *session_in
 			enum STATUSCODE flash_result = flash_payload_and_update_config(lgr, session_info);
 			if (flash_result != OK_FLASH_SUCCESS)
 				return flash_result;
-			// re-center width
-			glitch_cfg.width = START_GLITCH_WIDTH;
 		}
 
 		// Initialize heuristic which will inform how to adjust pulse width
@@ -283,8 +281,9 @@ enum STATUSCODE glitch_search_new_offset(logger *lgr, session_info_t *session_in
 
 			if (glitch_cfg.width > MAX_GLITCH_WIDTH || glitch_cfg.width < MIN_GLITCH_WIDTH)
 			{
-				// Reflash; also recenters width
+				// Reflash & recenter width
 				reflash = true;
+				glitch_cfg.width = START_GLITCH_WIDTH;
 				break;
 			}
 		} while (!fatal_abort && !next_offset);
