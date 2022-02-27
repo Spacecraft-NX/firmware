@@ -104,7 +104,7 @@ void firmware_main()
 	if (g_session_info.startup_adc_value < 1596)
 	{
 		config_t cfg;
-		if (config_load(&cfg) == ERR_CONFIG_MAGIC_MISMATCH)
+		if (config_load(&cfg) == ERR_CONFIG_NOT_FILLED)
 		{
 			int trains_left = 50;
 			uint32_t status;

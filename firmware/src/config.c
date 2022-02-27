@@ -32,7 +32,7 @@ enum STATUSCODE config_load(config_t *cfg)
 	if (cfg->magic != CONFIG_MAGIC)
 	{
 		config_clear(cfg);
-		return ERR_CONFIG_MAGIC_MISMATCH;
+		return ERR_CONFIG_NOT_FILLED;
 	}
 
 	int i = 0;
@@ -45,7 +45,7 @@ enum STATUSCODE config_load(config_t *cfg)
 	}
 	cfg->count = i;
 
-	return OK_CONFIG;
+	return i ? OK_CONFIG : ERR_CONFIG_NOT_FILLED;
 }
 
 enum STATUSCODE config_add_new(config_t *cfg, glitch_cfg_t *new_cfg)
