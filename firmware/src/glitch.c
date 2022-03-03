@@ -174,8 +174,8 @@ enum STATUSCODE glitch_reuse_offsets(logger *lgr, session_info_t *session_info, 
 		glitch_cfg.subcycle_delay = 0;
 		glitch_cfg.timeout = 50;
 
-		// Allow each config to be rejected by the heuristic 4x before moving on
-		const unsigned int retries_per_config = 4;
+		// Allow each config to be rejected by the heuristic 3x before moving on
+		const unsigned int retries_per_config = 3;
 		for (int j = 0; !fatal_abort && j < retries_per_config; ++j)
 		{
 			// Initialize heuristic which will inform how to adjust pulse width
