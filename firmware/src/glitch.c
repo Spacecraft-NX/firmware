@@ -240,20 +240,9 @@ enum STATUSCODE glitch_search_new_offset(logger *lgr, session_info_t *session_in
 	bool reflash = false;
 
 	const unsigned int max_glitch_attempts = 1200;
-	for (session_info->glitch_attempt = 0;
-		 !fatal_abort && session_info->glitch_attempt <= max_glitch_attempts;
-		 ++session_info->glitch_attempt)
+	for (session_info->glitch_attempt = 0; !fatal_abort && session_info->glitch_attempt <= max_glitch_attempts; )
 	{
 		glitch_cfg.offset = offsets[offset_idx];
-
-		// Poor heuristic to determine whether to reflash payload to BOOT0..
-		reflash |= session_info->glitch_attempt > 0 && (session_info->glitch_attempt % 400) == 0;
-		if (reflash)
-		{
-			enum STATUSCODE flash_result = flash_payload_and_update_config(lgr, session_info);
-			if (flash_result != OK_FLASH_SUCCESS)
-				return flash_result;
-		}
 
 		// Initialize heuristic which will inform how to adjust pulse width
 		// and when to move on to next offset.
@@ -261,6 +250,16 @@ enum STATUSCODE glitch_search_new_offset(logger *lgr, session_info_t *session_in
 		bool next_offset = false;
 		do
 		{
+			// Poor heuristic to determine whether to reflash payload to BOOT0..
+			reflash |= (session_info->glitch_attempt % 400) == 0;
+			if (reflash)
+			{
+				reflash = false;
+				enum STATUSCODE flash_result = flash_payload_and_update_config(lgr, session_info);
+				if (flash_result != OK_FLASH_SUCCESS)
+					return flash_result;
+			}
+
 			// Wait until device is ready to be glitched, reset if necessary.
 			if (adc_wait_eoc_read() < adc_goal)
 			{
@@ -289,7 +288,7 @@ enum STATUSCODE glitch_search_new_offset(logger *lgr, session_info_t *session_in
 				glitch_cfg.width = START_GLITCH_WIDTH;
 				break;
 			}
-		} while (!fatal_abort && !next_offset);
+		} while (!fatal_abort && !next_offset && session_info->glitch_attempt < max_glitch_attempts);
 
 		offset_idx = (offset_idx + 1) % offsets_count;
 
