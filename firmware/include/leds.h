@@ -64,6 +64,7 @@ extern led_pattern_t lp_fw_write;
 extern led_pattern_t lp_fw_read;
 
 extern led_pattern_t lp_err_emmc;
+extern led_pattern_t lp_err_exhausted;
 extern led_pattern_t lp_err_adc;
 extern led_pattern_t lp_err_fpga;
 extern led_pattern_t lp_err_glitch;

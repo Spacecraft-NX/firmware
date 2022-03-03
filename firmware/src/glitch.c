@@ -104,6 +104,9 @@ enum STATUSCODE glitch(logger *lgr, session_info_t *session_info, bool is_traini
 		case ERR_GLITCH_NO_EMMC_COMM:
 			leds_set_pattern(&lp_err_emmc);
 			break;
+		case ERR_GLITCH_TOO_MANY_ATTEMPTS:
+			leds_set_pattern(&lp_err_exhausted);
+			break;
 		case ERR_ADC_WAIT_TIMEOUT:
 		case ERR_UNKNOWN_DEVICE:
 			leds_set_pattern(&lp_err_adc);

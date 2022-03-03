@@ -52,6 +52,7 @@ led_pattern_t lp_fw_write         = {blink, RED};
 led_pattern_t lp_fw_read          = {blink, ORANGE};
 led_pattern_t lp_flash_payload    = {blink, ORANGE};
 led_pattern_t lp_err_emmc         = {solid, RED};
+led_pattern_t lp_err_exhausted    = {pulse, RED};
 led_pattern_t lp_err_adc_timeout  = {blink, CYAN};
 led_pattern_t lp_err_adc          = {solid, WHITE};
 led_pattern_t lp_err_fpga         = {solid, CYAN};
