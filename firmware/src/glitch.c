@@ -380,11 +380,14 @@ enum GLITCH_RESULT_TYPE glitch_attempt(logger *lgr, session_info_t *session_info
 	}
 }
 
+static bool g_payload_flash_attempted = false;
 enum STATUSCODE flash_payload_and_update_config(logger *lgr, session_info_t *session_info)
 {
-	// Prevent doing this (successfully) multiple times per session.
-	if (!session_info->payload_flashed)
+	// Prevent doing this multiple times per session. Failure always indicates improper wiring.
+	if (!g_payload_flash_attempted)
 	{
+		g_payload_flash_attempted = true;
+
 		// Clear flag from config if it was set
 		config_t cfg;
 		config_load(&cfg);
