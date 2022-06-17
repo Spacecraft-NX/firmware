@@ -34,23 +34,26 @@ Updating can be done using one of 3 methods:
  4. Remove USB cable.
  5. Power on console.
 
-**Method b) - Using hwfly-toolbox 
+**Method b) - Using hwfly-toolbox**
+
 This method does not require opening device, but it cannot flash the bootloader.
 LED patterns in bootloader will not correspond with documented ones.
 
  1. Obtain hwfly toolbox from https://github.com/hwfly-nx/hwfly-toolbox/releases
- 2. Place hwfly_toolbox.bin in sdcard:/bootloader/payloads/.
- 3. Boot switch into hekate, then run hwfly_toolbox.bin payload.
- 4. Update SD loader from toolbox menu.
- 5. Power off console from menu.
- 7. Place firmware.bin and sdloader.enc from hwfly firmware into sdcard root. Do not do so earlier.
+ 2. Place **hwfly_toolbox.bin** in `sdcard:/bootloader/payloads/`.
+ 3. Place **sdloader.enc** from hwfly firmware into sdcard root.
+ 4. Boot switch into hekate, then run **hwfly_toolbox.bin** payload.
+ 6. Update SD loader from toolbox menu.
+ 7. Power off console from menu.
+ 8. Place **firmware.bin** from hwfly firmware into sdcard root. Do not do so earlier.
     If you have previously flashed a beta firmware, also create empty file .force_update in sdcard root.
  8. Put SD in switch and power on while holding VOL+ (verify: modchip green light keep pulsing while hekate loads).
- 7. Run hwfly_toolbox from hekate again.
+ 7. Run **hwfly_toolbox** from hekate again.
  9. Update firmware from menu.
  10. Reboot & done.
 
 **Method c) - External programmer (j-link, st-link, gd-link)**
+
 See https://www.sthetix.info/flashing-updating-unbricking-the-chip/ for details.
 Supplied bootloader.bin should be flashed at 0x08000000.
 Supplied payload.bin should be flashed at 0x08003000.
