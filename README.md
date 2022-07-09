@@ -28,7 +28,7 @@ The device will enumerate as a USB CDC device and listed as a Serial COM port in
 Updating can be done using one of 3 methods:
 
 **Method a) - Using USB bootloader (preferred)**
- 1. Fully power of console.
+ 1. Fully power off the console.
  2. Insert USB cable. Take extreme caution not to insert incorrectly, this fully kills USB functionality on the chip.
  3. Run flash.bat. This updates both bootloader and firmware.
  4. Remove USB cable.
