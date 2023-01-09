@@ -118,7 +118,7 @@ int vsprintf(char *out_buf, const char *fmt, va_list ap)
 
 out:
 	*p_out_buf = '\0';
-	
+
 	return p_out_buf - out_buf;
 }
 
@@ -126,10 +126,10 @@ int sprintf(char *out_buf, const char *fmt, ...)
 {
 	va_list ap;
 	va_start(ap, fmt);
-	
+
 	int ret = vsprintf(out_buf, fmt, ap);
 
 	va_end(ap);
-	
+
 	return ret;
 }

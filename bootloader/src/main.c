@@ -19,12 +19,13 @@
 #include <cdc_acm_core.h>
 #include <bootloader.h>
 #include <dfu.h>
+#include <leds.h>
 
 void jump_to_app(uint32_t addr, struct bootloader_usb *usb);
 
 usb_core_handle_struct usbfs_core_dev =
 {
-	.dev = 
+	.dev =
 	{
 		.dev_desc = (uint8_t *)&device_descriptor,
 		.config_desc = (uint8_t *)&configuration_descriptor,
@@ -52,7 +53,7 @@ void usb_send_data(int len)
 	packet_sent = 0;
 	cdc_acm_data_send(&usbfs_core_dev, len);
 	while (!packet_sent);
-	
+
 	// We need to send a ZLP to signal end of bulk in case the data length is multiple of max packet size
 	// Due our buffer size is 64 this only happens in the case we send 64 bytes.
 	if (len == 64)
@@ -89,102 +90,24 @@ void usb_interrupt_config(void)
 	nvic_irq_enable((uint8_t)USBFS_WKUP_IRQn, 1U, 0U);
 }
 
-void init_leds()
-{
-	gpio_af_set(GPIOB, 2, GPIO_PIN_8);
-	gpio_af_set(GPIOB, 2, GPIO_PIN_9);
-	gpio_af_set(GPIOA, 2, GPIO_PIN_10);
-	gpio_output_options_set(GPIOB, 0, 3, GPIO_PIN_8);
-	gpio_output_options_set(GPIOB, 0, 3, GPIO_PIN_9);
-	gpio_output_options_set(GPIOA, 0, 3, GPIO_PIN_10);
-	gpio_mode_set(GPIOB, 2, 0, GPIO_PIN_8);
-	gpio_mode_set(GPIOB, 2, 0, GPIO_PIN_9);
-	gpio_mode_set(GPIOA, 2, 0, GPIO_PIN_10);
-	timer_deinit(TIMER0);
-	timer_deinit(TIMER15);
-	timer_deinit(TIMER16);
-	timer_parameter_struct initpara;
-	initpara.prescaler = 107;
-	initpara.alignedmode = TIMER_COUNTER_EDGE;
-	initpara.counterdirection = TIMER_COUNTER_UP;
-	initpara.period = 255;
-	initpara.clockdivision = TIMER_CKDIV_DIV1;
-	initpara.repetitioncounter = 0;
-	timer_init(TIMER0, &initpara);
-	timer_init(TIMER15, &initpara);
-	timer_init(TIMER16, &initpara);
-	timer_oc_parameter_struct v0;
-	v0.outputstate = TIMER_CCX_ENABLE;
-	v0.outputnstate = TIMER_CCXN_ENABLE;
-	v0.ocpolarity = TIMER_OC_POLARITY_HIGH;
-	v0.ocnpolarity = TIMER_OCN_POLARITY_LOW;
-	v0.ocidlestate = TIMER_OC_IDLE_STATE_LOW;
-	v0.ocnidlestate = TIMER_OCN_IDLE_STATE_HIGH;
-	timer_channel_output_config(TIMER15, 0, &v0);
-	timer_channel_output_pulse_value_config(TIMER15, 0, 256);
-	timer_channel_output_mode_config(TIMER15, 0, 96);
-	timer_channel_output_shadow_config(TIMER15, 0, 0);
-	timer_primary_output_config(TIMER15, 1);
-	timer_auto_reload_shadow_enable(TIMER15);
-	timer_channel_output_config(TIMER16, 0, &v0);
-	timer_channel_output_pulse_value_config(TIMER16, 0, 256);
-	timer_channel_output_mode_config(TIMER16, 0, 96);
-	timer_channel_output_shadow_config(TIMER16, 0, 0);
-	timer_primary_output_config(TIMER16, 1);
-	timer_auto_reload_shadow_enable(TIMER16);
-	timer_channel_output_config(TIMER0, 2, &v0);
-	timer_channel_output_pulse_value_config(TIMER0, 2, 256);
-	timer_channel_output_mode_config(TIMER0, 2, 96);
-	timer_channel_output_shadow_config(TIMER0, 2, 0);
-	timer_primary_output_config(TIMER0, 1);
-	timer_auto_reload_shadow_enable(TIMER0);
-	timer_enable(TIMER0);
-	timer_enable(TIMER16);
-	timer_enable(TIMER15);
-}
-
-void led_set_red_color(uint8_t value)
-{
-	timer_channel_output_pulse_value_config(TIMER15, 0, 0x100 - value);
-}
-
-void led_set_green_color(uint8_t value)
-{
-	timer_channel_output_pulse_value_config(TIMER16, 0, 0x100 - value);
-}
-
-void led_set_blue_color(uint8_t value)
-{
-	timer_channel_output_pulse_value_config(TIMER0, 2, 0x100 - value);
-}
-
-void leds_set_color(uint32_t rgb)
-{
-	led_set_red_color(rgb >> 16);
-	led_set_green_color(rgb >> 8);
-	led_set_blue_color(rgb);
-}
 
 int main(void)
 {
 	rcu_periph_clock_enable(RCU_GPIOA);
 	rcu_periph_clock_enable(RCU_GPIOB);
-	rcu_periph_clock_enable(RCU_TIMER0);
-	rcu_periph_clock_enable(RCU_TIMER15);
-	rcu_periph_clock_enable(RCU_TIMER16);
 
 	gpio_mode_set(GPIOA, GPIO_MODE_INPUT, GPIO_PUPD_PULLDOWN, GPIO_PIN_9);
-	int pin = gpio_input_bit_get(GPIOA, GPIO_PIN_9);
+	int usb_power = gpio_input_bit_get(GPIOA, GPIO_PIN_9);
 
-	if(SET == pin)
+	if (SET == usb_power)
 	{
-		init_leds();
-		delay_init(96);
-		leds_set_color(0x3f3f00);
+		leds_init();
+		delay_init();
+		leds_set_pattern(&lp_usb);
 
 		rcu_usbfs_clock_config(RCU_USBFS_CKPLL_DIV2);
 		rcu_periph_clock_enable(RCU_USBFS);
-	
+
 		/* USB device stack configure */
 		usbd_init(&usbfs_core_dev, USB_FS_CORE_ID);
 
@@ -193,14 +116,13 @@ int main(void)
 
 		/* check if USB device is enumerated successfully */
 		while (usbfs_core_dev.dev.status != USB_STATUS_CONFIGURED) {}
-			
+
 		/* delay 10 ms */
-		if(NULL != usbfs_core_dev.mdelay){
+		if (NULL != usbfs_core_dev.mdelay)
 			usbfs_core_dev.mdelay(10);
-		}
 
 		dfu(&g_bootloader_usb);
 	}
-	
+
 	jump_to_app(FIRMWARE_START_ADDR, 0);
 }

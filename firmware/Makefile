@@ -25,7 +25,7 @@ INCLUDES	:=	include ../libs/CMSIS/include ../libs/GD32F3x0_standard_peripheral/i
 #---------------------------------------------------------------------------------
 # options for code generation
 #---------------------------------------------------------------------------------
-ARCH	:=	-mcpu=cortex-m4 -march=armv7e-m -mthumb -mthumb-interwork
+ARCH	:=	-mcpu=cortex-m4 -march=armv7e-m -mthumb -mthumb-interwork -munaligned-access
 
 CFLAGS	:= \
 		-g \
@@ -35,9 +35,9 @@ CFLAGS	:= \
 		-fomit-frame-pointer \
 		-fno-inline \
 		-std=gnu11 \
-		-Werror \
 		-Wall \
 		-fshort-wchar \
+		-fstrict-volatile-bitfields \
 		$(ARCH) $(DEFINES)
 
 CFLAGS	+=	$(INCLUDE) -DGD32F350

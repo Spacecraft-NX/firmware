@@ -19,8 +19,9 @@
 
 #include <stdint.h>
 #include <device.h>
+#include <statuscode.h>
 
-uint32_t flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type);
-uint32_t erase_payload();
+enum STATUSCODE flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type);
+enum STATUSCODE erase_payload();
 
 #endif

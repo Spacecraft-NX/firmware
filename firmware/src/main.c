@@ -17,6 +17,7 @@
 #include <gd32f3x0.h>
 #include <delay.h>
 #include <board.h>
+#include <statuscode.h>
 #include <leds.h>
 #include <fpga.h>
 #include <board_id.h>
@@ -24,57 +25,115 @@
 #include <glitch.h>
 #include <clock.h>
 #include <sdio.h>
+#include <timer.h>
+#include <session_info.h>
+
+void systick_irq_config(void)
+{
+	SysTick->CTRL |= (1UL << 1);
+	nvic_priority_group_set(NVIC_PRIGROUP_PRE2_SUB2);
+	nvic_irq_enable((uint8_t)SysTick_IRQn, 1U, 0U);
+}
+
+void systick_irq_disable(void)
+{
+	SysTick->CTRL &= ~(1UL << 1);
+	nvic_irq_disable((uint8_t)SysTick_IRQn);
+}
 
 void enter_sleep()
 {
-	leds_set_color(0);
+	systick_irq_disable();
+	leds_off();
 	fpga_power_off();
-	while ( 1 )
+	while (1)
 		pmu_to_standbymode(WFI_CMD);
 }
 
 void firmware_main()
 {
-	delay_init(96);
-
+	delay_init();
+	systick_irq_config();
+	timer_global_init();
 	clocks_init();
 	leds_init();
 	clock_output_init();
 	fpga_init();
 	board_id_init();
-
 	adc_init(CONSOLE_STATE_ADC_PORT, CONSOLE_STATE_ADC_PIN, 3);
-	uint16_t pa3_voltage = adc_wait_eoc_read();
+	g_session_info.startup_adc_value = adc_wait_eoc_read();
 
-	if (fpga_reset() < 0)
+	int syncAttempt = 100;
+	SCB->CCR = SCB->CCR & ~(1 << 3); // no hardfault on UA
+
+	while (1)
 	{
-		leds_set_color(0x3f0000);
+		gpio_mode_set(GPIOF, GPIO_MODE_INPUT, GPIO_PUPD_PULLUP, BIT(7));
+		delay_ms(5u);
+		int pinWhilePulledUp = gpio_input_bit_get(GPIOF, BIT(7));
+
+		// configure GPIO to input with pull-down
+		gpio_mode_set(GPIOF, GPIO_MODE_INPUT, GPIO_PUPD_PULLDOWN, BIT(7));
+		delay_ms(5u);
+		int pinWhilePulledDown = gpio_input_bit_get(GPIOF, BIT(7));
+
+		if (pinWhilePulledDown && pinWhilePulledUp && syncAttempt < 95)
+		{
+			fpga_sync_failed = 1;
+			break;
+		}
+		if (pinWhilePulledUp == 1) // FPGA was driving it high
+		{
+			break;
+		}
+		if (syncAttempt == 0)
+		{
+			config_reset();
+			leds_set_pattern(&lp_config_reset);
+			while (1) ;
+		}
+		--syncAttempt;
+	}
+
+	if (fpga_reset() != OK_FPGA_RESET)
+	{
+		leds_set_pattern(&lp_err_fpga);
 		while (1);
 	}
-	else if (pa3_voltage < 1496)
+
+	if (g_session_info.startup_adc_value < 1596)
 	{
-		config cfg;
-		if (config_load(&cfg) == 0xBAD0010B)
+		config_t cfg;
+		if (config_load(&cfg) == ERR_CONFIG_NOT_FILLED)
 		{
-			leds_set_training(1);
-			int trains_left = 100;
-			while (trains_left)
+			int trains_left = 50;
+			uint32_t status;
+			do
 			{
-				uint32_t status = glitch(&null_logger);
-				if (status == 0x900D0006)
+				session_info_t local_si = {0};
+				status = glitch(&null_logger, &local_si, true);
+				if (status == OK_GLITCH_SUCCESS)
+				{
 					trains_left--;
-				if (status == 0xBAD00107)
-					break;
-			}
-			leds_set_training(0); 
+					leds_override(100, &lp_glitch_done); // green blink
+				}
+			} while (trains_left && (status != ERR_UNKNOWN_DEVICE && status != ERR_MMC_STATE_UNEXPECTED_NOT_IDENT));
 		}
 
-		uint32_t status = glitch(&null_logger);
+		enum STATUSCODE status = glitch(&null_logger, &g_session_info, false);
+		systick_irq_disable();
 
-		if (status == 0x900D0006)
+		if (status == OK_GLITCH_SUCCESS)
 			sdio_handler();
+
+		fpga_power_off(); // so cannot interfere with eMMC
+		if (status == OK_GLITCH_SUCCESS)
+		{
+			leds_set_pattern_delayed(&lp_off, 2000);
+			delay_ms(2000);
+		}
 		else
-			delay_ms(5000);
+			delay_ms(5000); // slightly longer LED visible for error
 	}
 	enter_sleep();
 }

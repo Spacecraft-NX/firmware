@@ -38,6 +38,6 @@ SECTIONS
 	} > IRAM
 
 	__data_flash_start__ = LOADADDR(.data);
-    __stack_top__    = 0x20002000;
-    __stack_bottom__ = 0x20001C00;
+    __stack_top__    = 0x20004000;
+    __stack_bottom__ = 0x20002000;
 }

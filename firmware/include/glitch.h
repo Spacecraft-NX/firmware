@@ -17,9 +17,19 @@
 #ifndef __GLITCH_H__
 #define __GLITCH_H__
 
-#include <stdint.h>
+#include <stdbool.h>
 #include <logger.h>
+#include <statuscode.h>
+#include <session_info.h>
 
-int glitch(logger *lgr);
+enum GLITCH_RESULT_TYPE
+{
+	GLITCH_RESULT_FAIL_NO_EMMC_COMMS = 0,
+	GLITCH_RESULT_FAIL_TIMEOUT,
+	GLITCH_RESULT_FAILED_MMC,
+	GLITCH_RESULT_SUCCESS,
+};
+
+enum STATUSCODE glitch(logger *lgr, session_info_t *session_info, bool is_training);
 
 #endif

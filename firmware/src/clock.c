@@ -28,17 +28,8 @@ void clocks_init()
 	// FPGA
 	rcu_periph_clock_enable(RCU_SPI0);
 
-	// LED (BLUE)
-	rcu_periph_clock_enable(RCU_TIMER0);
-
-	// GLITCHING
-	rcu_periph_clock_enable(RCU_TIMER13);
-
-	// LED (RED)
-	rcu_periph_clock_enable(RCU_TIMER15);
-
-	// LED (GREEN)
-	rcu_periph_clock_enable(RCU_TIMER16);
+	// FPGA Sync
+	rcu_periph_clock_enable(RCU_GPIOF);
 }
 
 void clock_output_init()

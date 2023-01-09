@@ -1,5 +1,6 @@
 /*
  * Copyright (c) 2020 Spacecraft-NX
+ * Copyright (c) 2022 HWFLY-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -14,35 +15,27 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef __FPGA_H__
-#define __FPGA_H__
+#ifndef __MMC_SNIFFER_H__
+#define __MMC_SNIFFER_H__
 
 #include <stdint.h>
 
-void fpga_init();
-uint32_t fpga_reset();
-void fpga_power_off();
-
-void fpga_select_active_buffer(uint8_t value);
-void fpga_reset_device(int do_clock_stuck_glitch);
-struct glitch_config
+enum MMC_SNIFFER_PACKET_TYPE
 {
-	uint32_t width;
-	uint32_t offset;
-	uint32_t rng;
+	MMC_SNIFF_PKT_TYPE_INVALID = 0,
+	MMC_SNIFF_PKT_TYPE_COMMAND, // 48-bit command from host to device
+	MMC_SNIFF_PKT_TYPE_RESPONSE48, // 48-bit response from device
+	MMC_SNIFF_PKT_TYPE_RESPONSE136, // 136-bit response from device
 };
-void fpga_glitch_device(struct glitch_config *cfg);
-uint32_t fpga_read_glitch_flags();
-uint32_t fpga_read_mmc_flags();
 
-void fpga_do_mmc_command();
+typedef struct
+{
+	uint8_t *data;
+	uint32_t datalen;
+	uint8_t cmd;
+} mmc_sniff_parser_ctx;
 
-void fpga_read_buffer(uint8_t *buffer, uint32_t size);
-void fpga_write_buffer(uint8_t *buffer, uint32_t size);
-
-void fpga_enter_cmd_mode();
-void fpga_pre_recv();
-void fpga_post_recv();
-void fpga_post_send();
+void mmc_sniff_parser_init(mmc_sniff_parser_ctx *ctx, uint8_t *data, int datalen);
+enum MMC_SNIFFER_PACKET_TYPE mmc_sniff_parser_parse(mmc_sniff_parser_ctx *ctx);
 
 #endif

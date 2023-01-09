@@ -4,7 +4,7 @@ ENTRY(_start)
 
 MEMORY
 {
-	FLASH : ORIGIN =  0x8003000, LENGTH = 0x1D000
+	FLASH : ORIGIN =  0x8003000, LENGTH = 0x20000 - 0x3000 - 0x400 /* offset at 0x3000 for bootloader, -0x400 for config table */
 	IRAM  : ORIGIN = 0x20000300, LENGTH =  0x3D00
 }
 
@@ -38,6 +38,6 @@ SECTIONS
 	} > IRAM
 
 	__data_flash_start__ = LOADADDR(.data);
-    __stack_top__    = 0x20002000;
-    __stack_bottom__ = 0x20001C00;
+    __stack_top__    = 0x20004000;
+    __stack_bottom__ = 0x20002000;
 }

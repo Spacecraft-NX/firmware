@@ -171,6 +171,9 @@ void leds_set_color(uint32_t rgb)
 
 int main(void)
 {
+	timer_interrupt_flag_clear(TIMER13, 1);
+	nvic_irq_disable(TIMER13_IRQn);
+	
 	init_leds();
 	delay_init(96);
 	

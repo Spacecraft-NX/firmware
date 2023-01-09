@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2020 Spacecraft-NX
+ * Copyright (c) 2022 HWFLY-NX
  *
  * This program is free software; you can redistribute it and/or modify it
  * under the terms and conditions of the GNU General Public License,
@@ -14,16 +14,23 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>.
  */
 
-#ifndef DELAY_H
-#define DELAY_H
+#ifndef __GLITCH_HEURISTC_H__
+#define __GLITCH_HEURISTC_H__
 
-#include "gd32f3x0.h"
+#include <stdint.h>
+#include <stdbool.h>
+#include <glitch.h>
 
-/* initialization time delay function */
-void delay_init(uint8_t sysclk);
-/* delay ms function */
-void delay_ms(uint32_t nms);
-/* delay us function */
-void delay_us(uint32_t nus);
+typedef struct
+{
+	uint8_t total_count;
+	uint8_t no_comms_count;
+	uint8_t timeout_count;
+	uint8_t block_read_count;
 
-#endif /* DELAY_H */
+} glitch_heuristic_t;
+
+void heuristic_add_result(glitch_heuristic_t *heuristic, enum GLITCH_RESULT_TYPE result);
+void heuristic_advice(glitch_heuristic_t *heuristic, bool *fatal_abort, bool *try_next_offset, int *width_adjust, int *offset_adjust);
+
+#endif

@@ -17,14 +17,16 @@
 #include <payload.h>
 #include <mmc.h>
 #include <string.h>
-
+#include <leds.h>
+#include <statuscode.h>
 #include "erista_bct.h"
 #include "mariko_bct.h"
 #include "payload.h"
 
-uint32_t flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type)
+enum STATUSCODE flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type)
 {
-	uint32_t ret = 0xBAD0010C;
+	leds_set_pattern(&lp_flash_payload);
+	uint32_t ret = ERR_FLASH_PAYLOAD_FAIL;
 	int retry = 6;
 	while (--retry)
 	{
@@ -37,30 +39,48 @@ uint32_t flash_payload(uint8_t *cid, enum DEVICE_TYPE cpu_type)
 			ret = mmc_check_and_if_different_write(0, erista_bct, sizeof(erista_bct));
 			if (ret)
 				continue;
-			ret = mmc_check_and_if_different_write(32, erista_bct, sizeof(erista_bct));
+			ret = mmc_check_and_if_different_write(0x20, erista_bct, sizeof(erista_bct));
 			if (ret)
 				continue;
 		}
 		else
 		{
+			// Check and replace 1st BCT with custom one if needed.
 			ret = mmc_check_and_if_different_write(0, mariko_bct, sizeof(mariko_bct));
 			if (ret)
 				continue;
-			ret = mmc_check_and_if_different_write(32, mariko_bct, sizeof(mariko_bct));
+
+			// Check and replace 2nd BCT with custom one if needed.
+			ret = mmc_check_and_if_different_write(0x20, mariko_bct, sizeof(mariko_bct));
+			if (ret)
+				continue;
+
+			// Check and replace 3rd BCT with official one if header is wrong.
+			ret = mmc_check_and_if_header_different_write_all(0x40, bct_mariko_1500, sizeof(bct_mariko_1500));
+			if (ret)
+				continue;
+
+			// Check and replace 4th BCT with official one if header is wrong.
+			ret = mmc_check_and_if_header_different_write_all(0x60, bct_mariko_1500, sizeof(bct_mariko_1500));
 			if (ret)
 				continue;
 		}
 
 		ret = mmc_check_and_if_different_write(0x1F80, payload, sizeof(payload));
 		if (!ret)
-			return 0x900D0008;
+			return OK_FLASH_SUCCESS;
 	}
+
+	if (ret && ret != OK_FLASH_SUCCESS)
+		leds_set_pattern(&lp_err_emmc);
+
 	return ret;
 }
 
-uint32_t erase_payload()
+enum STATUSCODE erase_payload()
 {
-	uint32_t ret = 0xBAD0010C;
+	leds_set_pattern(&lp_flash_payload);
+	uint32_t ret = ERR_FLASH_PAYLOAD_FAIL;
 	int retry = 6;
 	while (--retry)
 	{
@@ -75,10 +95,14 @@ uint32_t erase_payload()
 				{
 					ret = mmc_erase(0x1F80, 0x4000);
 					if (!ret)
-						return 0x900D0008;
+						return OK_FLASH_SUCCESS;
 				}
 			}
 		}
 	}
+
+	if (ret && ret != OK_FLASH_SUCCESS)
+		leds_set_pattern(&lp_err_emmc);
+
 	return ret;
 }
